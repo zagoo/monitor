@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --notion-sans: 'Notion Sans', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--notion-sans);
+  color: #1a1a1a;
+  background: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Tabular figures for metric readouts */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* Thin scrollbars that fit both light + dark surfaces */
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: rgba(120, 118, 113, 0.28);
+  border-radius: 9999px;
+}
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 118, 113, 0.45);
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-thin.on-dark::-webkit-scrollbar-thumb {
+  background: rgba(154, 167, 186, 0.22);
+}
+
+@layer components {
+  /* ── Notion light surfaces ── */
+  .nz-card {
+    @apply bg-canvas border border-hairline rounded-lg;
+  }
+  .nz-btn-primary {
+    @apply inline-flex items-center gap-1.5 bg-primary text-white text-sm font-medium rounded-md px-[18px] py-2.5 transition-colors hover:bg-primary-pressed active:bg-primary-deep;
+  }
+  .nz-btn-secondary {
+    @apply inline-flex items-center gap-1.5 bg-transparent text-ink text-sm font-medium rounded-md px-[18px] py-2.5 border border-hairline-strong transition-colors hover:bg-surface;
+  }
+  .nz-btn-ghost {
+    @apply inline-flex items-center gap-1.5 bg-transparent text-charcoal text-sm font-medium rounded-sm px-3 py-2 transition-colors hover:bg-surface;
+  }
+  .nz-input {
+    @apply h-11 rounded-md border border-hairline-strong bg-canvas px-3 text-[15px] text-ink placeholder:text-muted outline-none transition-shadow focus:border-primary focus:ring-2 focus:ring-primary/20;
+  }
+  .nz-pill {
+    @apply inline-flex items-center gap-1.5 h-8 rounded-full border border-hairline bg-transparent text-steel text-sm font-medium px-4 transition-colors hover:bg-surface cursor-pointer select-none;
+  }
+  .nz-pill-active {
+    @apply bg-ink-deep text-white border-ink-deep hover:bg-ink-deep;
+  }
+  .nz-chip {
+    @apply inline-flex items-center gap-1 h-7 rounded-full px-2.5 text-[13px] font-medium border;
+  }
+  .micro-label {
+    @apply text-[11px] font-semibold uppercase tracking-[1px];
+  }
+
+  /* ── Dark industrial cyber surfaces (metric dashboards) ── */
+  .cy-panel {
+    @apply rounded-lg border border-cyber-line bg-cyber-panel text-cyber-text shadow-cyber-inset;
+    background-image:
+      radial-gradient(1200px 400px at 100% -20%, rgba(56, 225, 255, 0.06), transparent 60%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 40%);
+  }
+  .cy-grid {
+    background-image:
+      linear-gradient(rgba(56, 225, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56, 225, 255, 0.05) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .cy-readout {
+    @apply font-mono tnum tracking-tight;
+  }
+  .cy-dot-live {
+    @apply inline-block h-2 w-2 rounded-full bg-cyber-cyan animate-pulse-live;
+    box-shadow: 0 0 10px 1px rgba(56, 225, 255, 0.8);
+  }
+}
