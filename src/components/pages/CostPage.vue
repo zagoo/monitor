@@ -38,17 +38,17 @@ const goodColor = computed(() => costSummary.value.goodput >= 80 ? '#37e0a0' : c
 
     <!-- core cards -->
     <section class="grid grid-cols-2 lg:grid-cols-3 gap-4">
-      <Card :icon="Clock" title="Card-Hours" :value="fmt(costSummary.card_hours)" accent="#38e1ff"
+      <Card :icon="Clock" title="Card-Hours" :value="fmt(costSummary.card_hours)" accent="#38e1ff" metric-id="cost.card_hours"
         :rows="[['Allocated', fmt(costSummary.allocated_hours)], ['Active', fmt(costSummary.active_hours)]]" />
-      <Card :icon="TrendingDown" title="Waste" :value="'$' + fmt(costSummary.waste_cost)" accent="#ff5f6d"
+      <Card :icon="TrendingDown" title="Waste" :value="'$' + fmt(costSummary.waste_cost)" accent="#ff5f6d" metric-id="cost.idle_card_hours"
         :rows="[['Idle card-h', fmt(costSummary.idle_hours)], ['Low-util card-h', fmt(costSummary.low_util_hours)]]" />
-      <Card :icon="Gauge" title="Goodput" :value="costSummary.goodput + '%'" :accent="goodColor"
+      <Card :icon="Gauge" title="Goodput" :value="costSummary.goodput + '%'" :accent="goodColor" metric-id="cost.goodput.pct"
         :rows="[['Effective training', 'ratio'], ['Target', '≥ 80%']]" />
-      <Card :icon="ListOrdered" title="Queue" :value="costSummary.queue_p95 + 'm'" accent="#ffb648"
+      <Card :icon="ListOrdered" title="Queue" :value="costSummary.queue_p95 + 'm'" accent="#ffb648" metric-id="sched.queue.time"
         :rows="[['P50 wait', costSummary.queue_p50 + 'm'], ['Queue depth', costSummary.queue_depth]]" />
-      <Card :icon="Boxes" title="Fragmentation" :value="costSummary.fragmentation_pct + '%'" accent="#8b7bff"
+      <Card :icon="Boxes" title="Fragmentation" :value="costSummary.fragmentation_pct + '%'" accent="#8b7bff" metric-id="sched.fragmentation.pct"
         :rows="[['Unschedulable', 'remaining'], ['By topology', 'gray-zone']]" />
-      <Card :icon="Activity" title="Capacity Watermark" :value="costSummary.watermark_pct + '%'" accent="#9cff57"
+      <Card :icon="Activity" title="Capacity Watermark" :value="costSummary.watermark_pct + '%'" accent="#9cff57" metric-id="fleet.cards.allocated"
         :rows="[['7d peak', '91%'], ['Forecast 30d', '+6%']]" />
     </section>
 
@@ -80,10 +80,14 @@ const goodColor = computed(() => costSummary.value.goodput >= 80 ? '#37e0a0' : c
 
 <script>
 import { h } from 'vue'
+import MetricTooltip from '../common/MetricTooltip.vue'
 const Card = (props) =>
   h('div', { class: 'cy-panel p-5' }, [
     h('div', { class: 'flex items-center justify-between' }, [
-      h('span', { class: 'micro-label text-cyber-text-3' }, props.title),
+      h('span', { class: 'flex items-center gap-1' }, [
+        h('span', { class: 'micro-label text-cyber-text-3' }, props.title),
+        props.metricId ? h(MetricTooltip, { metricId: props.metricId, iconOnly: true, dark: true }) : null
+      ]),
       props.icon ? h(props.icon, { size: 15, style: { color: props.accent } }) : null
     ]),
     h('div', { class: 'mt-2 cy-readout text-[26px] font-semibold', style: { color: props.accent } }, String(props.value)),
@@ -96,6 +100,6 @@ const Card = (props) =>
       )
     )
   ])
-Card.props = ['icon', 'title', 'value', 'accent', 'rows']
+Card.props = ['icon', 'title', 'value', 'accent', 'rows', 'metricId']
 export default { components: { Card } }
 </script>

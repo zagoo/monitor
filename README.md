@@ -17,10 +17,38 @@ Built to the uploaded `monitoring_prd_en.md` product spec and `DESIGN.md` Notion
 npm install      # already installed in this folder
 npm run dev      # http://localhost:5173
 npm run build    # production build to dist/
+npm test         # vitest — dictionary integrity + PRD coverage + UI tooltip coverage
+npm run preview  # serve the production build (http://localhost:4173)
 ```
 
-If `npm run build` ever fails with `EMFILE: too many open files`, raise the
-file-descriptor limit first: `ulimit -n 8192`.
+If `npm run build` or `npm test` fails with `EMFILE: too many open files`, that is a
+file-descriptor limit on the host filesystem, not a code error — raise it first with
+`ulimit -n 8192` (or build on a local disk).
+
+## Metric dictionary & tooltips
+
+`src/data/metrics.js` documents **every metric named in the PRD** — all 12 L0 homepage
+metrics (§7.2), the full L1 hardware/system/network/storage/training/cost/scheduling set
+(§7.3), the L2 expert metrics (§7.4), and the §8 confused-metrics table — 76 entries total.
+Each record carries the complete tooltip payload: **definition, calculation logic,
+significance, related metrics, easily-confused metrics, and notes**, plus level (L0/L1/L2),
+priority (P0–P3), unit, layer, default aggregation and collection sources.
+
+Every metric surfaced in the UI shows a `(?)` icon (`MetricTooltip`) that, on hover, opens
+a card teleported to `<body>` at a top-most z-index (never clipped or obscured) rendering
+all of the above. The Settings → Metric Dictionary tab lists all 76 metrics grouped by
+level and layer with live coverage counts.
+
+## Tests (`npm test`)
+
+Three vitest suites, 111 assertions:
+
+- **dictionary.test.js** — every record has the six required doc fields, valid
+  level/priority/layer, unique ids, and related-metric ids that resolve.
+- **coverage.test.js** — a word-for-word checklist of every PRD metric mapped to a
+  dictionary id; fails if any metric is dropped. Also enforces the §8 confused-metrics list.
+- **ui-coverage.test.js** — scans every `.vue`/`.js` file: each static `metric-id` used in
+  the UI must resolve in the dictionary, and every metric-bearing page must wire up a tooltip.
 
 ## Design language
 

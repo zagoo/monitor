@@ -1,5 +1,6 @@
-// Static metadata catalog: regions, accelerator types, metric dictionary, tenants.
-// Mirrors the unified data model in monitoring_prd_en.md §5.
+// Static metadata catalog: regions, accelerator types, tenants, time ranges, tabs.
+// The full metric dictionary lives in ./metrics.js and is re-exported here so existing
+// imports (`import { METRIC_DICTIONARY } from '../data/catalog.js'`) keep working.
 
 export const REGIONS = [
   { region_id: 'cn-hangzhou', region_name: 'Hangzhou', cloud_provider: 'Aliyun', timezone: 'Asia/Shanghai', status: 'online' },
@@ -51,99 +52,15 @@ export const TENANTS = [
 export const FRAMEWORKS = ['Megatron', 'DeepSpeed', 'FSDP', 'PAI-Megatron']
 export const PARALLEL = ['DP', 'TP', 'PP', 'ZeRO-3']
 
-// L0 / L1 metric dictionary subset (PRD §7, §8). Each has tooltip semantics.
-export const METRIC_DICTIONARY = [
-  {
-    metric_id: 'accelerator.utilization.compute.pct', display_name: 'Compute Utilization', unit: '%',
-    layer: 'hardware', priority: 'P0', type: 'gauge', default_aggregation: 'time_weighted_avg',
-    vendors: ['nvidia', 'aliyun_ppu', 'generic'],
-    tooltip: {
-      definition: 'Proportion of the sampling window during which accelerator compute units are busy.',
-      difference: 'Different from MFU: high utilization means the card is busy, not that model compute is efficient.',
-      caveat: 'Vendors define "busy" differently — prefer normalized metrics for cross-model comparison.'
-    },
-    similar: ['training.mfu.pct', 'accelerator.sm.occupancy.pct']
-  },
-  {
-    metric_id: 'accelerator.memory.used.pct', display_name: 'Memory Utilization', unit: '%',
-    layer: 'hardware', priority: 'P0', type: 'gauge', default_aggregation: 'weighted_avg',
-    vendors: ['nvidia', 'aliyun_ppu', 'generic'],
-    tooltip: {
-      definition: 'Used memory / total memory.',
-      difference: 'Different from memory bandwidth utilization, which measures throughput pressure rather than capacity.',
-      caveat: 'Full memory is not necessarily slow; watch fragmentation for OOM risk.'
-    },
-    similar: ['accelerator.memory.bandwidth.pct']
-  },
-  {
-    metric_id: 'training.mfu.pct', display_name: 'MFU', unit: '%',
-    layer: 'training', priority: 'P1', type: 'gauge', default_aggregation: 'token_weighted',
-    vendors: ['nvidia', 'aliyun_ppu'],
-    tooltip: {
-      definition: 'Actual model FLOPs / theoretical peak FLOPs of the accelerator model.',
-      difference: 'Different from GPU utilization (busy/idle) and Tokens/s (throughput affected by batch/seq length).',
-      caveat: 'Cross-model comparison requires same-model grouping and precision-aware peak metadata.'
-    },
-    similar: ['accelerator.utilization.compute.pct', 'training.throughput.tokens']
-  },
-  {
-    metric_id: 'accelerator.temperature.celsius', display_name: 'Temperature', unit: '°C',
-    layer: 'hardware', priority: 'P1', type: 'gauge', default_aggregation: 'max',
-    vendors: ['nvidia', 'aliyun_ppu', 'generic'],
-    tooltip: {
-      definition: 'Accelerator die/hotspot temperature.',
-      difference: 'Temperature is a state; thermal throttle is the performance-impacting event.',
-      caveat: 'Compare against per-model thermal limits, not a global threshold.'
-    },
-    similar: ['accelerator.thermal.throttle.events']
-  },
-  {
-    metric_id: 'accelerator.power.watt', display_name: 'Power Draw', unit: 'W',
-    layer: 'hardware', priority: 'P1', type: 'gauge', default_aggregation: 'avg',
-    vendors: ['nvidia', 'aliyun_ppu', 'generic'],
-    tooltip: {
-      definition: 'Instantaneous board power draw.',
-      difference: 'Power-limit hit % indicates capped operation; raw watts do not.',
-      caveat: 'Each model has its own power limit (H200 700W, RTX PRO 5000 300W).'
-    },
-    similar: ['accelerator.power.limit.hit.pct']
-  },
-  {
-    metric_id: 'training.throughput.tokens', display_name: 'Throughput', unit: 'tok/s',
-    layer: 'training', priority: 'P1', type: 'gauge', default_aggregation: 'sum',
-    vendors: ['nvidia', 'aliyun_ppu'],
-    tooltip: {
-      definition: 'Aggregated training output in tokens per second.',
-      difference: 'Business throughput; affected by batch size, sequence length, and parallel strategy.',
-      caveat: 'Compare per-card throughput within the same model + parallel strategy.'
-    },
-    similar: ['training.mfu.pct']
-  },
-  {
-    metric_id: 'training.wait.communication.pct', display_name: 'Comm Wait Ratio', unit: '%',
-    layer: 'training', priority: 'P1', type: 'gauge', default_aggregation: 'avg',
-    vendors: ['nvidia', 'aliyun_ppu'],
-    tooltip: {
-      definition: 'Proportion of a step spent waiting on collective communication or sync barriers.',
-      difference: 'Different from raw NCCL AllReduce latency — a single slow op may not block training.',
-      caveat: 'High wait ratio means communication is on the critical path.'
-    },
-    similar: ['training.wait.data.pct']
-  },
-  {
-    metric_id: 'training.wait.data.pct', display_name: 'Data Wait Ratio', unit: '%',
-    layer: 'training', priority: 'P1', type: 'gauge', default_aggregation: 'avg',
-    vendors: ['nvidia', 'aliyun_ppu', 'generic'],
-    tooltip: {
-      definition: 'Proportion of a step spent waiting on DataLoader / IO.',
-      difference: 'A training-side view; distinct from system IOWait / CPU utilization.',
-      caveat: 'High data wait with high memory + low compute points to an input pipeline bottleneck.'
-    },
-    similar: ['training.wait.communication.pct']
-  }
-]
-
-export const METRIC_BY_ID = Object.fromEntries(METRIC_DICTIONARY.map((m) => [m.metric_id, m]))
+// Full metric dictionary (PRD §7 L0/L1/L2 + §8 confused metrics).
+export {
+  METRIC_DICTIONARY,
+  METRIC_BY_ID,
+  LEVELS,
+  LEVEL_META,
+  LAYER_LABEL,
+  metricsByLevel
+} from './metrics.js'
 
 export const TIME_RANGES = [
   { id: '15m', label: 'Last 15m', minutes: 15 },

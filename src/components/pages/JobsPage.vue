@@ -79,17 +79,19 @@ const skewColor = { normal: '#37e0a0', slight: '#ffb648', obvious: '#ff8a3d', se
             <button class="drw-btn" @click="m.openDrawer('job', selected.job_id)"><Maximize2 :size="13" />Deep dive</button>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-            <Stat :icon="Activity" label="Throughput" :value="(selected.tokens_per_s/1000).toFixed(1)+'k'" unit="tok/s" color="#38e1ff" />
-            <Stat :icon="Timer" label="Step p95" :value="selected.step_p95_ms" unit="ms" color="#8b7bff" />
-            <Stat :icon="Gauge" label="MFU" :value="selected.mfu_pct" unit="%" :color="mfuColor(selected.mfu_pct)" />
-            <Stat :icon="Coins" label="Cost" :value="'$'+selected.cost_per_mtok" unit="/Mtok" color="#ffb648" />
+            <Stat :icon="Activity" label="Throughput" :value="(selected.tokens_per_s/1000).toFixed(1)+'k'" unit="tok/s" color="#38e1ff" metric-id="training.throughput.tokens" />
+            <Stat :icon="Timer" label="Step p95" :value="selected.step_p95_ms" unit="ms" color="#8b7bff" metric-id="training.step.time.ms" />
+            <Stat :icon="Gauge" label="MFU" :value="selected.mfu_pct" unit="%" :color="mfuColor(selected.mfu_pct)" metric-id="training.mfu.pct" />
+            <Stat :icon="Coins" label="Cost" :value="'$'+selected.cost_per_mtok" unit="/Mtok" color="#ffb648" metric-id="cost.per_million_tokens" />
           </div>
         </div>
 
         <!-- step time breakdown (stacked bar) -->
         <div class="cy-panel p-5">
           <div class="flex items-center justify-between mb-3">
-            <h4 class="text-[14px] font-semibold text-cyber-text">Step-Time Breakdown</h4>
+            <h4 class="text-[14px] font-semibold text-cyber-text flex items-center gap-1.5">Step-Time Breakdown
+              <MetricTooltip metric-id="training.step.breakdown" icon-only dark />
+            </h4>
             <span class="cy-readout text-[12px] text-cyber-text-2">{{ selected.step_p50_ms }} ms median</span>
           </div>
           <div class="flex h-7 w-full rounded-md overflow-hidden border border-cyber-line">
@@ -108,7 +110,9 @@ const skewColor = { normal: '#37e0a0', slight: '#ffb648', obvious: '#ff8a3d', se
         <!-- accelerator skew matrix (§11.3.4) -->
         <div class="cy-panel p-5">
           <div class="flex items-center justify-between mb-3">
-            <h4 class="text-[14px] font-semibold text-cyber-text flex items-center gap-2"><Layers :size="15" class="text-cyber-cyan" />Accelerator Skew Matrix</h4>
+            <h4 class="text-[14px] font-semibold text-cyber-text flex items-center gap-2"><Layers :size="15" class="text-cyber-cyan" />Accelerator Skew Matrix
+              <MetricTooltip metric-id="training.wait.barrier.pct" icon-only dark />
+            </h4>
             <span class="text-[11px] text-cyber-text-3">deviation vs job median step time</span>
           </div>
           <div class="overflow-x-auto scroll-thin on-dark">
@@ -139,18 +143,20 @@ const skewColor = { normal: '#37e0a0', slight: '#ffb648', obvious: '#ff8a3d', se
 
 <script>
 import { h } from 'vue'
+import MetricTooltip from '../common/MetricTooltip.vue'
 const Stat = (props) =>
   h('div', { class: 'rounded-lg border border-cyber-line bg-cyber-panel-2 p-3' }, [
     h('div', { class: 'flex items-center gap-1.5' }, [
       props.icon ? h(props.icon, { size: 13, style: { color: props.color } }) : null,
-      h('span', { class: 'text-[10.5px] uppercase tracking-wide text-cyber-text-3' }, props.label)
+      h('span', { class: 'text-[10.5px] uppercase tracking-wide text-cyber-text-3' }, props.label),
+      props.metricId ? h(MetricTooltip, { metricId: props.metricId, iconOnly: true, dark: true }) : null
     ]),
     h('div', { class: 'mt-1.5 flex items-baseline gap-1' }, [
       h('span', { class: 'cy-readout text-[20px] font-semibold', style: { color: props.color } }, String(props.value)),
       h('span', { class: 'cy-readout text-[11px] text-cyber-text-3' }, props.unit)
     ])
   ])
-Stat.props = ['icon', 'label', 'value', 'unit', 'color']
+Stat.props = ['icon', 'label', 'value', 'unit', 'color', 'metricId']
 export default { components: { Stat } }
 </script>
 

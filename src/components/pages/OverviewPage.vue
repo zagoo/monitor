@@ -90,13 +90,13 @@ const sevDot = { critical: '#ff5f6d', high: '#ffb648', medium: '#38e1ff', low: '
     <!-- ── KPI Cards row (dark cyber) ── -->
     <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       <KpiCard label="Available Cards" :value="kpis.healthy" :sub="kpis.availability_pct + '% availability'"
-        icon="HeartPulse" accent="#37e0a0" :spark="heroSpark" :delta="0.6" delta-good="up" />
+        icon="HeartPulse" accent="#37e0a0" :spark="heroSpark" :delta="0.6" delta-good="up" metric-id="fleet.cards.available" />
       <KpiCard label="Active Training" :value="kpis.active" :sub="kpis.allocated + ' allocated'"
-        icon="Cpu" accent="#38e1ff" :spark="heroSpark.map(v => v*0.9)" :delta="-1.2" delta-good="up" />
+        icon="Cpu" accent="#38e1ff" :spark="heroSpark.map(v => v*0.9)" :delta="-1.2" delta-good="up" metric-id="fleet.cards.active" />
       <KpiCard label="Avg Compute Util" :value="kpis.avg_util" unit="%"
-        icon="Gauge" accent="#8b7bff" :spark="heroSpark" :delta="2.4" delta-good="up" />
+        icon="Gauge" accent="#8b7bff" :spark="heroSpark" :delta="2.4" delta-good="up" metric-id="fleet.util.compute.avg" />
       <KpiCard label="P0 Alerts" :value="kpis.p0" :sub="kpis.hw_err + ' hw events'"
-        icon="BellRing" :accent="kpis.p0 ? '#ff5f6d' : '#37e0a0'" :delta="kpis.p0 ? 1 : 0" delta-good="down" />
+        icon="BellRing" :accent="kpis.p0 ? '#ff5f6d' : '#37e0a0'" :delta="kpis.p0 ? 1 : 0" delta-good="down" metric-id="alerts.p0.count" />
     </section>
 
     <!-- ── Matrix + TopN row ── -->
@@ -107,6 +107,7 @@ const sevDot = { critical: '#ff5f6d', high: '#ffb648', medium: '#38e1ff', low: '
           <div>
             <h3 class="text-[15px] font-semibold text-cyber-text flex items-center gap-2">
               Region × Accelerator Matrix
+              <MetricTooltip metric-id="accelerator.utilization.compute.pct" icon-only dark />
             </h3>
             <p class="text-[12px] text-cyber-text-2 mt-0.5">Health rate · avg utilization · P0 count — click a cell to drill in</p>
           </div>

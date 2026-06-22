@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { HeartPulse, Cpu, Gauge, BellRing, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-vue-next'
 import Sparkline from './Sparkline.vue'
+import MetricTooltip from './MetricTooltip.vue'
 
 const ICONS = { HeartPulse, Cpu, Gauge, BellRing, Activity }
 
@@ -15,7 +16,8 @@ const props = defineProps({
   spark: { type: Array, default: () => [] },
   accent: { type: String, default: '#38e1ff' },
   icon: { type: String, default: 'Activity' },
-  sub: { type: String, default: '' }
+  sub: { type: String, default: '' },
+  metricId: { type: String, default: '' }
 })
 
 const IconComp = computed(() => ICONS[props.icon] || Activity)
@@ -33,7 +35,10 @@ const DeltaIcon = computed(() => (props.delta >= 0 ? ArrowUpRight : ArrowDownRig
     <!-- accent edge -->
     <span class="absolute left-0 top-0 h-full w-[3px]" :style="{ background: accent, boxShadow: `0 0 14px ${accent}` }" />
     <div class="flex items-start justify-between">
-      <span class="micro-label text-cyber-text-3">{{ label }}</span>
+      <span class="flex items-center gap-1">
+        <span class="micro-label text-cyber-text-3">{{ label }}</span>
+        <MetricTooltip v-if="metricId" :metric-id="metricId" icon-only dark />
+      </span>
       <component :is="IconComp" :size="16" class="text-cyber-text-3" :style="{ color: accent }" />
     </div>
     <div class="flex items-end gap-1.5">
