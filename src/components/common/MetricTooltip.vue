@@ -34,8 +34,25 @@ function place() {
   const top = placement === 'top' ? r.top - GAP : r.bottom + GAP
   pos.value = { top, left, placement }
 }
-async function show() { open.value = true; await nextTick(); place() }
-function hide() { open.value = false }
+// Hover-intent: when the mouse leaves the icon we don't close immediately — we wait a
+// grace period so the user can travel onto the card to read, scroll or select it. Entering
+// the card cancels the pending close; the card only closes once the mouse leaves the card.
+const HIDE_DELAY = 220
+let hideTimer = null
+
+function cancelHide() {
+  if (hideTimer) { clearTimeout(hideTimer); hideTimer = null }
+}
+async function show() {
+  cancelHide()
+  open.value = true
+  await nextTick()
+  place()
+}
+function scheduleHide() {
+  cancelHide()
+  hideTimer = setTimeout(() => { open.value = false; hideTimer = null }, HIDE_DELAY)
+}
 function onScroll() { if (open.value) place() }
 
 if (typeof window !== 'undefined') {
@@ -43,6 +60,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('resize', onScroll)
 }
 onBeforeUnmount(() => {
+  cancelHide()
   window.removeEventListener('scroll', onScroll, true)
   window.removeEventListener('resize', onScroll)
 })
@@ -54,7 +72,7 @@ const relatedNames = (ids) => (ids || []).map((id) => METRIC_BY_ID[id]?.display_
   <span
     ref="anchor"
     class="inline-flex items-center gap-1 align-middle"
-    @mouseenter="show" @mouseleave="hide" @focusin="show" @focusout="hide"
+    @mouseenter="show" @mouseleave="scheduleHide" @focusin="show" @focusout="scheduleHide"
   >
     <span v-if="!iconOnly" :class="dark ? 'text-cyber-text-2' : 'text-steel'">{{ label || m?.display_name }}</span>
     <Info :size="13" :class="dark ? 'text-cyber-text-3' : 'text-stone'" class="cursor-help shrink-0" tabindex="0" />
@@ -67,12 +85,13 @@ const relatedNames = (ids) => (ids || []).map((id) => METRIC_BY_ID[id]?.display_
     >
       <div
         v-if="open && m"
-        class="fixed z-[2147483647] w-80 rounded-lg border border-hairline bg-canvas shadow-nz-4 text-left pointer-events-none overflow-hidden"
+        class="fixed z-[2147483647] w-80 rounded-lg border border-hairline bg-canvas shadow-nz-4 text-left overflow-hidden"
         :style="{
           left: pos.left + 'px',
           top: pos.top + 'px',
           transform: pos.placement === 'top' ? 'translateY(-100%)' : 'none'
         }"
+        @mouseenter="cancelHide" @mouseleave="scheduleHide"
       >
         <!-- header -->
         <div class="px-4 pt-3.5 pb-2.5 bg-surface-soft border-b border-hairline-soft">
