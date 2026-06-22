@@ -17,10 +17,10 @@ const m = METRIC_BY_ID[props.metricId]
 
 const open = ref(false)
 const anchor = ref(null)
-const pos = ref({ top: 0, left: 0, placement: 'top' })
+const pos = ref({ top: 0, left: 0, placement: 'top', maxHeight: 480 })
 const CARD_W = 320
-const CARD_H_EST = 320
 const GAP = 8
+const HARD_MAX_H = 520 // never taller than this even with lots of room
 
 function place() {
   const el = anchor.value
@@ -28,11 +28,21 @@ function place() {
   const r = el.getBoundingClientRect()
   const vw = window.innerWidth
   const vh = window.innerHeight
-  const placement = r.top < CARD_H_EST + GAP && vh - r.bottom > r.top ? 'bottom' : 'top'
+
+  // Available vertical room on each side of the icon (leaving a GAP margin from the edge).
+  const spaceAbove = r.top - GAP * 2
+  const spaceBelow = vh - r.bottom - GAP * 2
+  // Place on whichever side has more room; cap the card height to that room so it can
+  // never extend past the visible viewport — the body scrolls instead.
+  const placement = spaceAbove >= spaceBelow ? 'top' : 'bottom'
+  const maxHeight = Math.max(140, Math.min(HARD_MAX_H, placement === 'top' ? spaceAbove : spaceBelow))
+
+  // Horizontal: center on the icon, clamped to the viewport.
   let left = r.left + r.width / 2 - CARD_W / 2
   left = Math.max(GAP, Math.min(left, vw - CARD_W - GAP))
+
   const top = placement === 'top' ? r.top - GAP : r.bottom + GAP
-  pos.value = { top, left, placement }
+  pos.value = { top, left, placement, maxHeight }
 }
 // Hover-intent: when the mouse leaves the icon we don't close immediately — we wait a
 // grace period so the user can travel onto the card to read, scroll or select it. Entering
@@ -85,16 +95,17 @@ const relatedNames = (ids) => (ids || []).map((id) => METRIC_BY_ID[id]?.display_
     >
       <div
         v-if="open && m"
-        class="fixed z-[2147483647] w-80 rounded-lg border border-hairline bg-canvas shadow-nz-4 text-left overflow-hidden"
+        class="fixed z-[2147483647] w-80 rounded-lg border border-hairline bg-canvas shadow-nz-4 text-left overflow-hidden flex flex-col"
         :style="{
           left: pos.left + 'px',
           top: pos.top + 'px',
+          maxHeight: pos.maxHeight + 'px',
           transform: pos.placement === 'top' ? 'translateY(-100%)' : 'none'
         }"
         @mouseenter="cancelHide" @mouseleave="scheduleHide"
       >
         <!-- header -->
-        <div class="px-4 pt-3.5 pb-2.5 bg-surface-soft border-b border-hairline-soft">
+        <div class="shrink-0 px-4 pt-3.5 pb-2.5 bg-surface-soft border-b border-hairline-soft">
           <div class="flex items-center justify-between gap-2">
             <span class="text-[14px] font-semibold text-charcoal">{{ m.display_name }}</span>
             <span class="flex items-center gap-1 shrink-0">
@@ -105,7 +116,7 @@ const relatedNames = (ids) => (ids || []).map((id) => METRIC_BY_ID[id]?.display_
           <div class="mt-1 font-mono text-[11px] text-stone">{{ m.metric_id }}</div>
         </div>
 
-        <div class="px-4 py-3 space-y-2.5 max-h-[60vh] overflow-y-auto scroll-thin">
+        <div class="flex-1 min-h-0 px-4 py-3 space-y-2.5 overflow-y-auto scroll-thin">
           <Block label="Definition">{{ m.def }}</Block>
           <Block label="Calculation">{{ m.calc }}</Block>
           <Block label="Significance">{{ m.sig }}</Block>
