@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPLETE METRIC DICTIONARY
+// COMPLETE METRIC DICTIONARY  (指标字典 · 完整覆盖)
 // Word-for-word coverage of every metric named in monitoring_prd_en.md:
 //   · L0 homepage core metrics            (§7.2, 12 metrics)
 //   · L1 standard analysis metrics        (§7.3.1 hardware/system, §7.3.2 network/storage,
@@ -7,13 +7,14 @@
 //   · L2 expert diagnostic metrics        (§7.4)
 //   · §8.1 core metrics w/ built-in tooltips (definition + confused-with)
 //
-// Each record carries the full tooltip payload requested:
-//   def       – definition
-//   calc      – calculation logic / formula
-//   sig       – significance (why it matters)
-//   related   – related metric ids
-//   confused  – easily-confused metrics [{ name, diff }]
-//   notes     – important caveats
+// Detailed fields are written in Chinese per request; metric names (display_name) and
+// confused-metric labels (confused[].name) stay in their original form.
+//   def       – 定义
+//   calc      – 计算逻辑 / 公式
+//   sig       – 重要性
+//   related   – 相关指标 ids
+//   confused  – 易混淆指标 [{ name, diff }]
+//   notes     – 注意事项
 //
 // level: L0 | L1 | L2     priority: P0 | P1 | P2 | P3
 // layer: hardware | system | k8s | network | storage | comm | training | cost | scheduling | expert
@@ -28,186 +29,186 @@ export const METRIC_DICTIONARY = [
     metric_id: 'fleet.cards.total', display_name: 'Total Cards', unit: 'cards',
     level: 'L0', priority: 'P0', layer: 'hardware', type: 'count', vendors: ALL,
     default_aggregation: 'count', sources: ['inventory', 'kubernetes'],
-    def: 'Number of managed accelerator cards in scope.',
-    calc: 'count(distinct accelerator_id) over the current filter set.',
-    sig: 'Capacity baseline that every utilization, allocation and waste ratio is measured against.',
+    def: '范围内受管的 AI 加速卡总数。',
+    calc: '在当前筛选条件下统计去重后的 accelerator_id 数量（count distinct）。',
+    sig: '容量基线，所有利用率、分配率与浪费率都以此为分母进行衡量。',
     related: ['fleet.cards.available', 'fleet.cards.allocated'],
-    confused: [{ name: 'Allocated cards', diff: 'Total counts all managed cards; allocated counts only those bound to a Job/Pod.' }],
-    notes: 'Includes offline/maintenance cards; filter by health to exclude them.'
+    confused: [{ name: 'Allocated cards', diff: '总数统计所有受管卡；已分配仅统计绑定到 Job/Pod 的卡。' }],
+    notes: '包含离线/维护中的卡；如需排除，请按健康状态筛选。'
   },
   {
     metric_id: 'fleet.cards.available', display_name: 'Available Cards / Availability Rate', unit: 'cards / %',
     level: 'L0', priority: 'P0', layer: 'hardware', type: 'count+ratio', vendors: ALL,
     default_aggregation: 'count / ratio', sources: ['dcgm_exporter', 'ppu_sdk_exporter', 'kubernetes'],
-    def: 'Number and ratio of cards whose health_status = healthy.',
-    calc: 'healthy_cards / total_cards × 100.',
-    sig: 'Primary hardware-health signal for on-call; a falling rate signals failures or maintenance.',
+    def: 'health_status = healthy 的卡数量及其占比。',
+    calc: '健康卡数 / 总卡数 × 100。',
+    sig: '面向值班的核心硬件健康信号；占比下降意味着故障增多或正在维护。',
     related: ['fleet.cards.total', 'accelerator.offline.events', 'alerts.p0.count'],
-    confused: [{ name: 'Allocation rate', diff: 'Availability is about hardware health; allocation is about scheduling occupancy.' }],
-    notes: 'Cards in maintenance windows are reported separately, not as unhealthy.'
+    confused: [{ name: 'Allocation rate', diff: '可用率关注硬件健康；分配率关注调度占用。' }],
+    notes: '处于维护窗口的卡单独统计，不计为不健康。'
   },
   {
     metric_id: 'fleet.cards.allocated', display_name: 'Allocated Cards / Allocation Rate', unit: 'cards / %',
     level: 'L0', priority: 'P0', layer: 'scheduling', type: 'count+ratio', vendors: ALL,
     default_aggregation: 'count / ratio', sources: ['kubernetes', 'scheduler'],
-    def: 'Number and ratio of cards bound to a Job or Pod.',
-    calc: 'allocated_cards / total_cards × 100.',
-    sig: 'Scheduling watermark — how much of the fleet is claimed by workloads.',
+    def: '已绑定到 Job 或 Pod 的卡数量及其占比。',
+    calc: '已分配卡数 / 总卡数 × 100。',
+    sig: '调度水位线——衡量工作负载占用了多少算力。',
     related: ['fleet.cards.active', 'sched.fragmentation.pct', 'cost.card_hours'],
-    confused: [{ name: 'Active training cards', diff: 'Allocated means claimed; active means actually computing above the utilization threshold.' }],
-    notes: 'A high allocation rate with low active rate is the classic "occupied but unused" waste pattern.'
+    confused: [{ name: 'Active training cards', diff: '已分配表示被占用；活跃表示确实在以高于阈值的利用率进行计算。' }],
+    notes: '高分配率叠加低活跃率，是典型的"占而不用"浪费信号。'
   },
   {
     metric_id: 'fleet.cards.active', display_name: 'Active Training Cards', unit: 'cards',
     level: 'L0', priority: 'P0', layer: 'training', type: 'count', vendors: NV_PPU,
     default_aggregation: 'count', sources: ['dcgm_exporter', 'ppu_sdk_exporter', 'training_hook'],
-    def: 'Cards carrying a training workload with compute utilization above the active threshold.',
-    calc: 'count(allocated = true AND compute_util_pct > active_threshold).',
-    sig: 'Distinguishes genuinely working cards from idle-but-allocated ones.',
+    def: '承载训练负载且计算利用率高于活跃阈值的卡。',
+    calc: 'count(allocated = true 且 compute_util_pct > 活跃阈值)。',
+    sig: '区分真正在工作的卡与"已分配但空闲"的卡。',
     related: ['fleet.cards.allocated', 'accelerator.utilization.compute.pct'],
-    confused: [{ name: 'Allocated cards', diff: 'Active is a subset of allocated that is actually computing.' }],
-    notes: 'Default active threshold is 25% compute utilization; configurable per profile.'
+    confused: [{ name: 'Allocated cards', diff: '活跃是已分配中确实在计算的子集。' }],
+    notes: '默认活跃阈值为 25% 计算利用率，可按采集档位配置。'
   },
   {
     metric_id: 'accelerator.utilization.compute.pct', display_name: 'Compute Utilization', unit: '%',
     level: 'L0', priority: 'P0', layer: 'hardware', type: 'gauge', vendors: ALL,
     default_aggregation: 'time_weighted_avg', sources: ['dcgm_exporter', 'nvml', 'ppu_sdk_exporter'],
     scope: ['accelerator', 'pod', 'job', 'region'],
-    def: 'Proportion of the sampling window during which accelerator compute units are busy.',
-    calc: 'busy_sample_time / total_sample_time × 100, normalized per vendor adapter.',
-    sig: 'Tells you whether a card is being used by a workload at all.',
+    def: '采样窗口内加速卡计算单元处于繁忙状态的时间占比。',
+    calc: '繁忙采样时间 / 总采样时间 × 100，并按厂商适配器做归一化。',
+    sig: '用于判断卡是否被工作负载使用。',
     related: ['training.mfu.pct', 'expert.sm.occupancy.pct', 'accelerator.utilization.tensor.pct'],
     confused: [
-      { name: 'MFU', diff: 'MFU measures actual model FLOPs / theoretical peak; high utilization ≠ efficient model compute.' },
-      { name: 'SM Occupancy', diff: 'Occupancy is a kernel-level scheduler metric, not a busy/idle measure.' }
+      { name: 'MFU', diff: 'MFU 衡量实际模型 FLOPs / 理论峰值；高利用率 ≠ 模型计算高效。' },
+      { name: 'SM Occupancy', diff: '占用率是内核级调度指标，并非繁忙/空闲度量。' }
     ],
-    notes: 'Vendors define "busy" differently — prefer normalized metrics and same-model grouping for cross-model comparison.'
+    notes: '不同厂商对"繁忙"的定义不同——跨型号比较时优先使用归一化指标并按同型号分组。'
   },
   {
     metric_id: 'accelerator.memory.used.pct', display_name: 'Memory Utilization', unit: '%',
     level: 'L0', priority: 'P0', layer: 'hardware', type: 'gauge', vendors: ALL,
     default_aggregation: 'weighted_avg', sources: ['dcgm_exporter', 'nvml', 'ppu_sdk_exporter'],
     scope: ['accelerator', 'pod', 'job', 'region'],
-    def: 'Used device memory / total device memory.',
-    calc: 'sum(memory_used_bytes) / sum(memory_total_bytes) × 100; rolled up weighted by card memory capacity.',
-    sig: 'Memory-pressure signal; near-full memory risks OOM and limits batch size.',
+    def: '已用显存 / 总显存。',
+    calc: 'sum(已用显存字节) / sum(总显存字节) × 100；汇总时按卡显存容量加权。',
+    sig: '显存压力信号；接近占满会有 OOM 风险并限制批大小。',
     related: ['accelerator.memory.bandwidth.pct', 'expert.memory.fragmentation', 'system.oom.kill.events'],
     confused: [
-      { name: 'Memory bandwidth utilization', diff: 'Capacity (how full) vs throughput pressure (how fast read/write).' },
-      { name: 'Memory fragmentation', diff: 'Full memory is not necessarily slow; high fragmentation can cause OOM even below 100%.' }
+      { name: 'Memory bandwidth utilization', diff: '容量（占多满）与吞吐压力（读写多快）的区别。' },
+      { name: 'Memory fragmentation', diff: '占满不一定慢；高碎片率即便未达 100% 也可能触发 OOM。' }
     ],
-    notes: 'Roll up weighted by memory capacity, not a simple average across heterogeneous models.'
+    notes: '按显存容量加权汇总，而非在异构型号间做简单平均。'
   },
   {
     metric_id: 'accelerator.memory.bandwidth.pct', display_name: 'Memory Bandwidth Utilization', unit: '%',
     level: 'L1', priority: 'P1', layer: 'hardware', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'avg', sources: ['dcgm_exporter', 'ppu_sdk_exporter'],
-    def: 'Actual memory read/write bandwidth / theoretical bandwidth.',
-    calc: 'measured_bw_bytes_per_s / model_peak_bw_bytes_per_s × 100.',
-    sig: 'Detects memory-access bottlenecks even when capacity utilization looks fine.',
+    def: '实际显存读写带宽 / 理论带宽。',
+    calc: '实测带宽(字节/秒) / 型号峰值带宽(字节/秒) × 100。',
+    sig: '即使容量利用率看起来正常，也能发现访存瓶颈。',
     related: ['accelerator.memory.used.pct', 'accelerator.utilization.compute.pct'],
-    confused: [{ name: 'Memory utilization', diff: 'Memory utilization is capacity; bandwidth utilization is throughput pressure.' }],
-    notes: 'Peak bandwidth metadata is model-specific (H200 4.8 TB/s, RTX PRO 5000 1344 GB/s).'
+    confused: [{ name: 'Memory utilization', diff: '显存利用率是容量；带宽利用率是吞吐压力。' }],
+    notes: '峰值带宽元数据与型号相关（H200 4.8 TB/s，RTX PRO 5000 1344 GB/s）。'
   },
   {
     metric_id: 'accelerator.utilization.tensor.pct', display_name: 'Tensor / Matrix Unit Utilization', unit: '%',
     level: 'L1', priority: 'P1', layer: 'hardware', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'time_weighted_avg', sources: ['dcgm_exporter', 'ppu_sdk_exporter'],
-    def: 'Proportion of time the tensor/matrix-multiply units are active.',
-    calc: 'tensor_active_cycles / total_cycles × 100.',
-    sig: 'A closer proxy for useful matmul work than overall compute utilization.',
+    def: '张量/矩阵乘单元处于活跃状态的时间占比。',
+    calc: '张量单元活跃周期 / 总周期 × 100。',
+    sig: '相比整体计算利用率，更能代表有效的矩阵乘工作量。',
     related: ['accelerator.utilization.compute.pct', 'training.mfu.pct'],
-    confused: [{ name: 'Compute utilization', diff: 'Compute utilization counts any busy unit; tensor utilization isolates matmul engines.' }],
-    notes: 'Availability depends on the adapter; PPU exposes a normalized equivalent.'
+    confused: [{ name: 'Compute utilization', diff: '计算利用率统计任意繁忙单元；张量利用率仅隔离矩阵乘引擎。' }],
+    notes: '是否可用取决于适配器；PPU 暴露归一化的等价指标。'
   },
   {
     metric_id: 'fleet.util.compute.avg', display_name: 'Average Compute Utilization', unit: '%',
     level: 'L0', priority: 'P0', layer: 'training', type: 'gauge', vendors: ALL,
     default_aggregation: 'weighted_avg', sources: ['dcgm_exporter', 'ppu_sdk_exporter'],
-    def: 'Sample-weighted average compute utilization across cards in scope.',
-    calc: 'sum(region_util_avg × region_active_sample_count) / sum(region_active_sample_count).',
-    sig: 'Headline resource-usage figure for managers and FinOps.',
+    def: '范围内各卡按采样加权的平均计算利用率。',
+    calc: 'sum(各区域利用率均值 × 区域活跃采样数) / sum(区域活跃采样数)。',
+    sig: '面向管理者与 FinOps 的总览资源使用率指标。',
     related: ['accelerator.utilization.compute.pct', 'fleet.util.memory.avg'],
-    confused: [{ name: 'Per-card compute utilization', diff: 'The fleet figure is a weighted rollup; never a simple mean across heterogeneous models.' }],
-    notes: 'Multi-region rollups weight by sample/card count to avoid skew (§6.2).'
+    confused: [{ name: 'Per-card compute utilization', diff: '集群数值是加权汇总；绝不在异构型号间做简单平均。' }],
+    notes: '多区域汇总按采样数/卡数加权以避免偏差（§6.2）。'
   },
   {
     metric_id: 'fleet.util.memory.avg', display_name: 'Average Memory Utilization', unit: '%',
     level: 'L0', priority: 'P0', layer: 'hardware', type: 'gauge', vendors: ALL,
     default_aggregation: 'weighted_avg', sources: ['dcgm_exporter', 'ppu_sdk_exporter'],
-    def: 'Memory-capacity-weighted average memory utilization across cards.',
-    calc: 'sum(memory_used_bytes) / sum(memory_total_bytes) × 100.',
-    sig: 'Fleet-wide memory pressure indicator.',
+    def: '按显存容量加权的各卡平均显存利用率。',
+    calc: 'sum(已用显存字节) / sum(总显存字节) × 100。',
+    sig: '全机群显存压力指示器。',
     related: ['accelerator.memory.used.pct'],
-    confused: [{ name: 'Average compute utilization', diff: 'Memory is capacity pressure; compute is busy time.' }],
-    notes: 'Weight by memory capacity since models range 48 GB → 144 GB.'
+    confused: [{ name: 'Average compute utilization', diff: '显存是容量压力；计算是繁忙时间。' }],
+    notes: '由于型号显存从 48 GB 到 144 GB 不等，需按显存容量加权。'
   },
   {
     metric_id: 'alerts.p0.count', display_name: 'P0 Alerts', unit: 'alerts',
     level: 'L0', priority: 'P0', layer: 'system', type: 'count', vendors: ALL,
     default_aggregation: 'count', sources: ['alert_manager'],
-    def: 'Current unrecovered P0 (critical) alerts.',
-    calc: 'count(alerts where severity = P0 AND status = firing).',
-    sig: 'The on-call entry point — anything here needs immediate action.',
+    def: '当前未恢复的 P0（严重）告警数量。',
+    calc: 'count(severity = P0 且 status = firing 的告警)。',
+    sig: '值班入口——此处任何条目都需立即处理。',
     related: ['accelerator.errors.xid.count', 'accelerator.errors.ecc.count', 'accelerator.offline.events'],
-    confused: [{ name: 'Hardware error events', diff: 'Alerts are deduplicated/inhibited incidents; hardware events are raw counter increases.' }],
-    notes: 'Inhibition suppresses derived alerts when a card is offline to reduce noise (§15.2).'
+    confused: [{ name: 'Hardware error events', diff: '告警是经过去重/抑制的事件；硬件事件是原始计数器增量。' }],
+    notes: '当某卡离线时会抑制其派生告警以降噪（§15.2）。'
   },
   {
     metric_id: 'hw.error.events', display_name: 'Hardware Error Events', unit: 'events',
     level: 'L0', priority: 'P0', layer: 'hardware', type: 'increase', vendors: ALL,
     default_aggregation: 'increase', sources: ['dcgm_exporter', 'ppu_sdk_exporter', 'node_exporter'],
-    def: 'Xid / ECC / offline / PPU-native hardware error events in the window.',
-    calc: 'increase(xid + ecc_uncorrectable + offline + ppu_native_error counters) over the time range.',
-    sig: 'Failure-localization signal; the first thing to check during incidents.',
+    def: '窗口内 Xid / ECC / 离线 / PPU 原生硬件错误事件。',
+    calc: 'increase(xid + ecc_uncorrectable + offline + ppu_native_error 计数器) 在时间范围内的增量。',
+    sig: '故障定位信号；事故排查时第一时间查看。',
     related: ['accelerator.errors.xid.count', 'accelerator.errors.ecc.count', 'accelerator.offline.events', 'accelerator.errors.ppu_native.code'],
-    confused: [{ name: 'P0 alerts', diff: 'Raw event increases vs deduplicated firing alerts.' }],
-    notes: 'PPU-native error codes are mapped to generic categories by the adapter; Xid/NVLink are not forced onto PPU.'
+    confused: [{ name: 'P0 alerts', diff: '原始事件增量 vs 去重后的触发告警。' }],
+    notes: 'PPU 原生错误码由适配器映射为通用类别；不会把 Xid/NVLink 强加到 PPU 上。'
   },
   {
     metric_id: 'fleet.cards.thermal_power_limited', display_name: 'Thermal / Power-Limited Cards', unit: 'cards',
     level: 'L0', priority: 'P1', layer: 'hardware', type: 'count', vendors: ALL,
     default_aggregation: 'count', sources: ['dcgm_exporter', 'ppu_sdk_exporter'],
-    def: 'Cards hitting a temperature limit, power limit, or thermal throttle.',
-    calc: 'count(thermal_throttle_events > 0 OR power_limit_hit_pct > threshold).',
-    sig: 'Performance-degradation signal — throttled cards silently slow training.',
+    def: '触及温度上限、功率上限或热降频的卡。',
+    calc: 'count(thermal_throttle_events > 0 或 power_limit_hit_pct > 阈值)。',
+    sig: '性能下降信号——被降频的卡会悄悄拖慢训练。',
     related: ['accelerator.temperature.celsius', 'accelerator.power.limit_hit.pct', 'accelerator.thermal.throttle.events'],
-    confused: [{ name: 'Temperature', diff: 'Temperature is a state; this counts cards whose performance is actually being capped.' }],
-    notes: 'Per-model limits differ (H200 700 W, RTX PRO 5000 300 W).'
+    confused: [{ name: 'Temperature', diff: '温度是一种状态；此项统计性能确实被限制的卡。' }],
+    notes: '各型号上限不同（H200 700 W，RTX PRO 5000 300 W）。'
   },
   {
     metric_id: 'training.throughput.tokens', display_name: 'Training Throughput (Tokens/s)', unit: 'tok/s',
     level: 'L0', priority: 'P1', layer: 'training', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'sum', sources: ['training_hook'],
     scope: ['job', 'accelerator', 'cluster'],
-    def: 'Aggregated training output measured in tokens per second.',
-    calc: 'sum(tokens processed) / elapsed_seconds across selected jobs.',
-    sig: 'The business output of the cluster — what training is actually producing.',
+    def: '以每秒 token 数衡量的聚合训练产出。',
+    calc: 'sum(已处理 token 数) / 已用秒数，跨所选作业聚合。',
+    sig: '集群的业务产出——训练实际在产出什么。',
     related: ['training.throughput.samples', 'training.throughput.per_card', 'training.mfu.pct'],
-    confused: [{ name: 'MFU', diff: 'Tokens/s is raw throughput affected by batch/seq length; MFU normalizes against hardware peak.' }],
-    notes: 'Compare per-card throughput only within the same model + parallel strategy.'
+    confused: [{ name: 'MFU', diff: 'Tokens/s 是受批大小/序列长度影响的原始吞吐；MFU 按硬件峰值归一化。' }],
+    notes: '仅在相同型号 + 并行策略下比较单卡吞吐。'
   },
   {
     metric_id: 'topn.low_utilization', display_name: 'Low-Utilization TopN', unit: 'ranking',
     level: 'L0', priority: 'P1', layer: 'cost', type: 'topn', vendors: ALL,
     default_aggregation: 'topn', sources: ['dcgm_exporter', 'ppu_sdk_exporter', 'scheduler'],
-    def: 'Ranking of allocated cards/jobs with the lowest compute utilization.',
-    calc: 'rank_bottom_n(compute_util_pct) where allocated = true, sustained for the window.',
-    sig: 'Pinpoints where compute is being wasted so it can be reclaimed.',
+    def: '计算利用率最低的已分配卡/作业排名。',
+    calc: 'rank_bottom_n(compute_util_pct)，限定 allocated = true 且在窗口内持续。',
+    sig: '定位算力浪费点以便回收。',
     related: ['fleet.cards.allocated', 'cost.idle_card_hours', 'accelerator.utilization.compute.pct'],
-    confused: [{ name: 'Idle card-hours', diff: 'TopN names the worst offenders; idle card-hours quantifies the total waste.' }],
-    notes: 'Preset "allocated AND compute < 20% FOR 15m" drives this list.'
+    confused: [{ name: 'Idle card-hours', diff: 'TopN 列出最严重的对象；空闲卡时量化总浪费。' }],
+    notes: '由预设"已分配且 compute < 20% 持续 15m"驱动该列表。'
   },
   {
     metric_id: 'cost.idle_card_hours', display_name: 'Idle Card-Hour Cost', unit: 'card-h / $',
     level: 'L0', priority: 'P1', layer: 'cost', type: 'sum', vendors: ALL,
     default_aggregation: 'sum', sources: ['scheduler', 'billing'],
-    def: 'Estimated card-hours for unallocated or low-utilization cards, and their cost.',
-    calc: 'sum(idle_or_low_util_card_count_per_interval × interval_seconds) / 3600 × card_hour_price.',
-    sig: 'Cost-governance signal — turns idle silicon into a dollar figure.',
+    def: '未分配或低利用率卡的估算卡时及其成本。',
+    calc: 'sum(空闲或低利用卡数/区间 × 区间秒数) / 3600 × 卡时单价。',
+    sig: '成本治理信号——把闲置硅片折算成金额。',
     related: ['cost.card_hours', 'topn.low_utilization', 'cost.goodput.pct'],
-    confused: [{ name: 'Card-hours', diff: 'Card-hours is total consumption; idle card-hours is the wasted portion.' }],
-    notes: 'Price model is configurable; SREs may see a normalized cost index instead of dollars (§13.2).'
+    confused: [{ name: 'Card-hours', diff: '卡时是总消耗；空闲卡时是其中被浪费的部分。' }],
+    notes: '价格模型可配置；SRE 可能看到归一化成本指数而非金额（§13.2）。'
   },
 
   // ── L1 · Hardware & system (§7.3.1) ─────────────────────────────────────────
@@ -215,221 +216,221 @@ export const METRIC_DICTIONARY = [
     metric_id: 'accelerator.temperature.celsius', display_name: 'Temperature', unit: '°C',
     level: 'L1', priority: 'P1', layer: 'hardware', type: 'gauge', vendors: ALL,
     default_aggregation: 'max', sources: ['dcgm_exporter', 'ppu_sdk_exporter'],
-    def: 'Accelerator die / hotspot temperature.',
-    calc: 'max(sensor_temperature) over the sampling window.',
-    sig: 'Leading indicator of thermal throttling and cooling problems.',
+    def: '加速卡核心/热点温度。',
+    calc: '采样窗口内 max(传感器温度)。',
+    sig: '热降频与散热问题的先行指标。',
     related: ['accelerator.thermal.throttle.events', 'accelerator.power.watt', 'accelerator.cooling.state'],
-    confused: [{ name: 'Thermal throttle event', diff: 'Temperature is a continuous state; throttle is the discrete performance-impacting event.' }],
-    notes: 'Compare against per-model thermal limits, not one global threshold.'
+    confused: [{ name: 'Thermal throttle event', diff: '温度是连续状态；降频是离散的、影响性能的事件。' }],
+    notes: '应对照各型号热限值，而非单一全局阈值。'
   },
   {
     metric_id: 'accelerator.power.watt', display_name: 'Power Draw', unit: 'W',
     level: 'L1', priority: 'P1', layer: 'hardware', type: 'gauge', vendors: ALL,
     default_aggregation: 'avg', sources: ['dcgm_exporter', 'ppu_sdk_exporter'],
-    def: 'Instantaneous board power draw.',
-    calc: 'avg(power_watts) over the window.',
-    sig: 'Energy/cost driver and an input to power-limit and cooling analysis.',
+    def: '板卡瞬时功耗。',
+    calc: '窗口内 avg(功耗瓦数)。',
+    sig: '能耗/成本驱动因素，也是功率上限与散热分析的输入。',
     related: ['accelerator.power.limit_hit.pct', 'accelerator.temperature.celsius'],
-    confused: [{ name: 'Power-limit hit %', diff: 'Raw watts vs proportion of time the card runs capped at its power limit.' }],
-    notes: 'Per-model power limits differ; always interpret relative to the model limit.'
+    confused: [{ name: 'Power-limit hit %', diff: '原始瓦数 vs 卡运行在功率上限的时间占比。' }],
+    notes: '各型号功率上限不同；务必相对型号上限来解读。'
   },
   {
     metric_id: 'accelerator.power.limit_hit.pct', display_name: 'Power-Limit Hit', unit: '%',
     level: 'L1', priority: 'P1', layer: 'hardware', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'avg', sources: ['dcgm_exporter', 'ppu_sdk_exporter'],
-    def: 'Proportion of time the card is clamped at its power limit.',
-    calc: 'time_at_power_cap / total_time × 100.',
-    sig: 'Indicates performance is being capped by power, not workload.',
+    def: '卡被钳制在功率上限的时间占比。',
+    calc: '处于功率上限的时间 / 总时间 × 100。',
+    sig: '表明性能受功率限制（而非负载）所制约。',
     related: ['accelerator.power.watt', 'accelerator.thermal.throttle.events'],
-    confused: [{ name: 'Power draw', diff: 'Hit % measures capping; watts measures the level.' }],
-    notes: 'Sustained high hit % warrants power/cooling review.'
+    confused: [{ name: 'Power draw', diff: '命中率衡量是否被钳制；瓦数衡量功耗水平。' }],
+    notes: '持续高命中率需排查供电/散热。'
   },
   {
     metric_id: 'accelerator.thermal.throttle.events', display_name: 'Thermal Throttle Event', unit: 'events',
     level: 'L1', priority: 'P1', layer: 'hardware', type: 'increase', vendors: ALL,
     default_aggregation: 'increase', sources: ['dcgm_exporter', 'ppu_sdk_exporter'],
-    def: 'Frequency/event that a device is downclocked or power-limited due to thermal policy.',
-    calc: 'increase(throttle_event_counter) over the window.',
-    sig: 'Direct cause of silent training slowdowns.',
+    def: '因热策略导致设备降频或限功率的频率/事件。',
+    calc: 'increase(降频事件计数器) 在窗口内的增量。',
+    sig: '训练悄然变慢的直接原因。',
     related: ['accelerator.temperature.celsius', 'accelerator.power.limit_hit.pct'],
-    confused: [{ name: 'Temperature', diff: 'High temperature is a state; thermal throttle is the performance-impacting event.' }],
-    notes: 'Alert template fires on throttle_events > 0 FOR 5m (P1).'
+    confused: [{ name: 'Temperature', diff: '高温是状态；热降频是影响性能的事件。' }],
+    notes: '告警模板在 throttle_events > 0 持续 5m 时触发（P1）。'
   },
   {
     metric_id: 'accelerator.cooling.state', display_name: 'Fan / Liquid-Cooling State', unit: 'state',
     level: 'L1', priority: 'P2', layer: 'hardware', type: 'state', vendors: ALL,
     default_aggregation: 'last', sources: ['node_exporter', 'bmc'],
-    def: 'Operational state of fans or the liquid-cooling loop.',
-    calc: 'Discrete state read from BMC / node exporter (ok | degraded | fault).',
-    sig: 'Root-cause context when temperatures rise across a node or rack.',
+    def: '风扇或液冷回路的运行状态。',
+    calc: '从 BMC / node exporter 读取的离散状态（正常 | 降级 | 故障）。',
+    sig: '当整机或整机柜温度升高时的根因上下文。',
     related: ['accelerator.temperature.celsius'],
     confused: [],
-    notes: 'Rack/node-level; correlate with co-located cards when diagnosing.'
+    notes: '机柜/节点级别；诊断时与同机位的卡关联分析。'
   },
   {
     metric_id: 'accelerator.errors.xid.count', display_name: 'Xid Errors', unit: 'events',
     level: 'L1', priority: 'P0', layer: 'hardware', type: 'increase', vendors: ['nvidia'],
     default_aggregation: 'increase', sources: ['dcgm_exporter', 'nvml'],
-    def: 'NVIDIA Xid hardware/driver error events on a card.',
-    calc: 'increase(xid_error_counter) over the window.',
-    sig: 'Strong fault signal; many Xid codes mean the card should be drained.',
+    def: '卡上的 NVIDIA Xid 硬件/驱动错误事件。',
+    calc: 'increase(xid 错误计数器) 在窗口内的增量。',
+    sig: '强故障信号；出现多个 Xid 码意味着应隔离该卡。',
     related: ['accelerator.errors.ecc.count', 'accelerator.offline.events', 'hw.error.events'],
-    confused: [{ name: 'ECC errors', diff: 'Xid spans driver/hardware faults broadly; ECC is specifically memory bit errors.' }],
-    notes: 'NVIDIA-only; PPU faults are reported via ppu_native error codes instead.'
+    confused: [{ name: 'ECC errors', diff: 'Xid 广泛涵盖驱动/硬件故障；ECC 专指显存位错误。' }],
+    notes: '仅限 NVIDIA；PPU 故障通过 ppu_native 错误码上报。'
   },
   {
     metric_id: 'accelerator.errors.ecc.count', display_name: 'ECC Errors', unit: 'events',
     level: 'L1', priority: 'P0', layer: 'hardware', type: 'increase', vendors: NV_PPU,
     default_aggregation: 'increase', sources: ['dcgm_exporter', 'nvml', 'ppu_sdk_exporter'],
-    def: 'Correctable and uncorrectable memory ECC error counts.',
-    calc: 'increase(ecc_correctable) and increase(ecc_uncorrectable) over the window.',
-    sig: 'Uncorrectable ECC means data corruption risk — retire the card.',
+    def: '可纠正与不可纠正的显存 ECC 错误计数。',
+    calc: 'increase(ecc_correctable) 与 increase(ecc_uncorrectable) 在窗口内的增量。',
+    sig: '不可纠正 ECC 意味着数据损坏风险——应下线该卡。',
     related: ['accelerator.errors.xid.count', 'accelerator.memory.used.pct'],
-    confused: [{ name: 'Xid errors', diff: 'ECC is memory-specific; Xid is a broader fault category.' }],
-    notes: 'Uncorrectable ECC increase > 0 is a P0 alert.'
+    confused: [{ name: 'Xid errors', diff: 'ECC 专指显存；Xid 是更宽泛的故障类别。' }],
+    notes: '不可纠正 ECC 增量 > 0 为 P0 告警。'
   },
   {
     metric_id: 'accelerator.offline.events', display_name: 'Offline Card Events', unit: 'events',
     level: 'L1', priority: 'P0', layer: 'hardware', type: 'increase', vendors: ALL,
     default_aggregation: 'increase', sources: ['dcgm_exporter', 'ppu_sdk_exporter', 'kubernetes'],
-    def: 'Events where a device drops off the bus / stops reporting.',
-    calc: 'increase(device_offline_counter) over the window.',
-    sig: 'Hard-failure signal; offline cards block any job scheduled to them.',
+    def: '设备掉出总线/停止上报的事件。',
+    calc: 'increase(设备离线计数器) 在窗口内的增量。',
+    sig: '硬故障信号；离线卡会阻塞调度到其上的任何作业。',
     related: ['fleet.cards.available', 'accelerator.errors.xid.count'],
-    confused: [{ name: 'Collection stale', diff: 'Offline is a hardware drop; stale is an exporter/data-freshness problem.' }],
-    notes: 'Offline-card alerts inhibit derived low-util/temperature alerts for the same card.'
+    confused: [{ name: 'Collection stale', diff: '离线是硬件掉线；过期是 exporter/数据新鲜度问题。' }],
+    notes: '离线卡告警会抑制同卡的派生低利用/温度告警。'
   },
   {
     metric_id: 'accelerator.link.nvlink_pcie.errors', display_name: 'NVLink / PCIe Errors', unit: 'events',
     level: 'L1', priority: 'P1', layer: 'network', type: 'increase', vendors: ['nvidia'],
     default_aggregation: 'increase', sources: ['dcgm_exporter', 'nvml'],
-    def: 'Replay/CRC/link errors on NVLink, NVSwitch or PCIe links.',
-    calc: 'increase(link_error_counters) over the window.',
-    sig: 'Intra-node interconnect faults degrade collective-communication performance.',
+    def: 'NVLink、NVSwitch 或 PCIe 链路上的重传/CRC/链路错误。',
+    calc: 'increase(链路错误计数器) 在窗口内的增量。',
+    sig: '节点内互连故障会降低集合通信性能。',
     related: ['network.nvlink.bandwidth', 'comm.allreduce.duration.ms'],
-    confused: [{ name: 'Inter-node bit errors', diff: 'These are on-host links; bit errors are on the RoCE/IB fabric.' }],
-    notes: 'PPU exposes inter-chip link errors via its own adapter fields.'
+    confused: [{ name: 'Inter-node bit errors', diff: '这些是主机内链路；位错误在 RoCE/IB 网络上。' }],
+    notes: 'PPU 通过其自有适配器字段暴露片间链路错误。'
   },
   {
     metric_id: 'accelerator.errors.ppu_native.code', display_name: 'PPU-Native Error Code', unit: 'events',
     level: 'L1', priority: 'P1', layer: 'hardware', type: 'increase', vendors: ['aliyun_ppu'],
     default_aggregation: 'increase', sources: ['ppu_sdk_exporter'],
-    def: 'Vendor-native error codes reported by the Zhenwu PPU SDK.',
-    calc: 'increase(ppu_native_error_counter) grouped by code.',
-    sig: 'PPU equivalent of Xid/ECC for fault localization on Alibaba accelerators.',
+    def: '由真武 PPU SDK 上报的厂商原生错误码。',
+    calc: 'increase(ppu 原生错误计数器) 按错误码分组。',
+    sig: 'PPU 上等价于 Xid/ECC 的故障定位手段。',
     related: ['hw.error.events', 'accelerator.errors.ecc.count'],
-    confused: [{ name: 'Xid errors', diff: 'PPU codes are stored in adapter_specific and mapped to generic categories; NVIDIA Xid is not forced onto PPU.' }],
-    notes: 'Raw codes kept in adapter_specific; normalized into generic hardware-error categories.'
+    confused: [{ name: 'Xid errors', diff: 'PPU 错误码存于 adapter_specific 并映射为通用类别；不会把 NVIDIA Xid 强加到 PPU。' }],
+    notes: '原始码保存在 adapter_specific 中，并归一化为通用硬件错误类别。'
   },
   {
     metric_id: 'system.cpu.utilization.pct', display_name: 'CPU Utilization', unit: '%',
     level: 'L1', priority: 'P1', layer: 'system', type: 'gauge', vendors: ALL,
     default_aggregation: 'avg', sources: ['node_exporter', 'kubelet'],
-    def: 'Host CPU utilization for the node/pod.',
-    calc: 'busy_cpu_time / total_cpu_time × 100.',
-    sig: 'High CPU can starve the input pipeline and host-side collectives.',
+    def: '节点/Pod 的主机 CPU 利用率。',
+    calc: '繁忙 CPU 时间 / 总 CPU 时间 × 100。',
+    sig: 'CPU 过高会拖慢数据输入流水线与主机侧集合通信。',
     related: ['system.cpu.iowait.pct', 'training.wait.data.pct'],
-    confused: [{ name: 'Compute utilization', diff: 'This is host CPU; compute utilization is the accelerator.' }],
-    notes: 'Correlate with DataLoader time when diagnosing input bottlenecks.'
+    confused: [{ name: 'Compute utilization', diff: '这是主机 CPU；计算利用率是加速卡。' }],
+    notes: '诊断输入瓶颈时与 DataLoader 耗时关联分析。'
   },
   {
     metric_id: 'system.cpu.iowait.pct', display_name: 'IOWait', unit: '%',
     level: 'L1', priority: 'P1', layer: 'system', type: 'gauge', vendors: ALL,
     default_aggregation: 'avg', sources: ['node_exporter'],
-    def: 'Proportion of CPU time spent waiting on I/O.',
-    calc: 'iowait_cpu_time / total_cpu_time × 100.',
-    sig: 'System-level view of storage/IO pressure feeding training.',
+    def: 'CPU 等待 I/O 的时间占比。',
+    calc: 'iowait CPU 时间 / 总 CPU 时间 × 100。',
+    sig: '从系统层面观察喂给训练的存储/IO 压力。',
     related: ['training.wait.data.pct', 'dataloader.iteration.ms'],
-    confused: [{ name: 'DataLoader time', diff: 'IOWait is a system perspective; DataLoader time is the training-loop perspective.' }],
-    notes: 'High IOWait with high DataLoader time confirms an input-pipeline bottleneck.'
+    confused: [{ name: 'DataLoader time', diff: 'IOWait 是系统视角；DataLoader 耗时是训练循环视角。' }],
+    notes: '高 IOWait 叠加高 DataLoader 耗时可确认输入流水线瓶颈。'
   },
   {
     metric_id: 'system.memory.used.pct', display_name: 'System Memory', unit: '%',
     level: 'L1', priority: 'P1', layer: 'system', type: 'gauge', vendors: ALL,
     default_aggregation: 'avg', sources: ['node_exporter', 'kubelet'],
-    def: 'Host RAM utilization.',
-    calc: 'used_bytes / total_bytes × 100.',
-    sig: 'Host memory pressure precedes OOM kills of training pods.',
+    def: '主机内存利用率。',
+    calc: '已用字节 / 总字节 × 100。',
+    sig: '主机内存压力是训练 Pod 发生 OOM 的前兆。',
     related: ['system.oom.kill.events', 'system.numa.imbalance'],
-    confused: [{ name: 'Device memory utilization', diff: 'This is host RAM, not accelerator HBM.' }],
-    notes: 'Pin to NUMA-aware limits for large data pipelines.'
+    confused: [{ name: 'Device memory utilization', diff: '这是主机内存，而非加速卡 HBM。' }],
+    notes: '对大型数据流水线，按 NUMA 感知限制进行绑定。'
   },
   {
     metric_id: 'system.numa.imbalance', display_name: 'NUMA Imbalance', unit: 'ratio',
     level: 'L1', priority: 'P2', layer: 'system', type: 'gauge', vendors: ALL,
     default_aggregation: 'max', sources: ['node_exporter'],
-    def: 'Imbalance of memory/CPU usage across NUMA nodes.',
-    calc: 'max(node_usage) / mean(node_usage) across NUMA domains.',
-    sig: 'NUMA imbalance hurts host-to-device copy and DataLoader throughput.',
+    def: '各 NUMA 节点之间内存/CPU 使用的不均衡程度。',
+    calc: '各 NUMA 域 max(节点使用) / mean(节点使用)。',
+    sig: 'NUMA 不均衡会损害主机到设备的拷贝与 DataLoader 吞吐。',
     related: ['system.memory.used.pct', 'dataloader.copy.h2d'],
     confused: [],
-    notes: 'Address with NUMA-pinned workers and memory affinity.'
+    notes: '通过 NUMA 绑核 worker 与内存亲和性来缓解。'
   },
   {
     metric_id: 'system.oom.kill.events', display_name: 'OOM Kill', unit: 'events',
     level: 'L1', priority: 'P1', layer: 'system', type: 'increase', vendors: ALL,
     default_aggregation: 'increase', sources: ['kubelet', 'node_exporter'],
-    def: 'Out-of-memory kill events for containers/processes.',
-    calc: 'increase(oom_kill_counter) over the window.',
-    sig: 'Abruptly terminates training; a top cause of unexplained restarts.',
+    def: '容器/进程的内存溢出击杀事件。',
+    calc: 'increase(oom_kill 计数器) 在窗口内的增量。',
+    sig: '会突然终止训练；是无法解释的重启的主要原因之一。',
     related: ['system.memory.used.pct', 'k8s.pod.restarts', 'expert.memory.fragmentation'],
-    confused: [{ name: 'Device OOM', diff: 'Host OOM kills the process; device OOM is HBM allocation failure inside the framework.' }],
-    notes: 'Pair with allocator details (expert) to find leaks vs. genuine over-allocation.'
+    confused: [{ name: 'Device OOM', diff: '主机 OOM 击杀进程；设备 OOM 是框架内的 HBM 分配失败。' }],
+    notes: '结合分配器细节（专家级）区分泄漏与真实超额分配。'
   },
   {
     metric_id: 'k8s.pod.pending.seconds', display_name: 'Pod Pending Time', unit: 's',
     level: 'L1', priority: 'P1', layer: 'k8s', type: 'gauge', vendors: ALL,
     default_aggregation: 'p95', sources: ['kube_state_metrics'],
-    def: 'Time a pod spends in Pending before being scheduled.',
-    calc: 'scheduled_time − created_time, summarized as P50/P95.',
-    sig: 'Long pending times point to capacity or fragmentation problems.',
+    def: 'Pod 在被调度前处于 Pending 的时长。',
+    calc: '调度时间 − 创建时间，汇总为 P50/P95。',
+    sig: 'Pending 时间长意味着容量或碎片化问题。',
     related: ['sched.queue.time', 'sched.fragmentation.pct', 'k8s.schedule.failures'],
-    confused: [{ name: 'Queue time', diff: 'Pending is the K8s-level wait; queue time is the scheduler/quota-level wait.' }],
-    notes: 'P95 > SLO FOR 15m raises a queue-backlog alert.'
+    confused: [{ name: 'Queue time', diff: 'Pending 是 K8s 层面的等待；排队时间是调度器/配额层面的等待。' }],
+    notes: 'P95 > SLO 持续 15m 触发排队积压告警。'
   },
   {
     metric_id: 'k8s.schedule.failures', display_name: 'Scheduling Failures', unit: 'events',
     level: 'L1', priority: 'P1', layer: 'k8s', type: 'increase', vendors: ALL,
     default_aggregation: 'increase', sources: ['kube_state_metrics', 'scheduler'],
-    def: 'Failed scheduling attempts (unschedulable events).',
-    calc: 'increase(scheduling_failure_counter) over the window.',
-    sig: 'Surfaces topology/quota/affinity constraints blocking placement.',
+    def: '调度失败次数（不可调度事件）。',
+    calc: 'increase(调度失败计数器) 在窗口内的增量。',
+    sig: '暴露阻碍放置的拓扑/配额/亲和性约束。',
     related: ['sched.fragmentation.pct', 'k8s.pod.pending.seconds'],
-    confused: [{ name: 'Resource fragmentation', diff: 'Failures are the symptom; fragmentation is a common cause.' }],
-    notes: 'Group failure reasons to distinguish quota vs. topology vs. affinity.'
+    confused: [{ name: 'Resource fragmentation', diff: '失败是症状；碎片化是常见原因。' }],
+    notes: '对失败原因分组以区分配额、拓扑与亲和性。'
   },
   {
     metric_id: 'k8s.pod.restarts', display_name: 'Pod Restarts', unit: 'events',
     level: 'L1', priority: 'P1', layer: 'k8s', type: 'increase', vendors: ALL,
     default_aggregation: 'increase', sources: ['kube_state_metrics'],
-    def: 'Container restart count for training pods.',
-    calc: 'increase(container_restart_count) over the window.',
-    sig: 'Frequent restarts indicate crashes, OOM, or hardware flapping.',
+    def: '训练 Pod 的容器重启次数。',
+    calc: 'increase(容器重启计数) 在窗口内的增量。',
+    sig: '频繁重启意味着崩溃、OOM 或硬件抖动。',
     related: ['k8s.pod.exit_code', 'system.oom.kill.events'],
     confused: [],
-    notes: 'Join with exit code to classify the failure mode.'
+    notes: '结合退出码以归类故障模式。'
   },
   {
     metric_id: 'k8s.pod.exit_code', display_name: 'Exit Code', unit: 'code',
     level: 'L1', priority: 'P2', layer: 'k8s', type: 'state', vendors: ALL,
     default_aggregation: 'last', sources: ['kube_state_metrics'],
-    def: 'Last container termination exit code.',
-    calc: 'Reported by kubelet on container exit.',
-    sig: 'Classifies why a pod stopped (OOM 137, error 1, etc.).',
+    def: '容器最近一次终止的退出码。',
+    calc: '由 kubelet 在容器退出时上报。',
+    sig: '用于归类 Pod 停止的原因（OOM 137、错误 1 等）。',
     related: ['k8s.pod.restarts', 'system.oom.kill.events'],
     confused: [],
-    notes: '137 typically means OOM-kill; 0 is clean shutdown.'
+    notes: '137 通常表示 OOM 击杀；0 为正常关闭。'
   },
   {
     metric_id: 'k8s.resource.request_limit', display_name: 'Resource Requests / Limits', unit: 'ratio',
     level: 'L1', priority: 'P2', layer: 'k8s', type: 'gauge', vendors: ALL,
     default_aggregation: 'avg', sources: ['kube_state_metrics'],
-    def: 'Configured CPU/memory/accelerator requests and limits vs actual use.',
-    calc: 'actual_usage / requested (and / limit) per resource.',
-    sig: 'Over-requested pods cause fragmentation; under-requested pods get throttled/OOM.',
+    def: '配置的 CPU/内存/加速卡 requests 与 limits 相对实际使用情况。',
+    calc: '各资源的 实际使用 / requested（以及 / limit）。',
+    sig: '过度 request 的 Pod 会造成碎片化；request 不足的 Pod 会被限流/OOM。',
     related: ['sched.fragmentation.pct', 'system.memory.used.pct'],
     confused: [],
-    notes: 'A key FinOps right-sizing input.'
+    notes: 'FinOps 资源规格优化的关键输入。'
   },
 
   // ── L1 · Network & storage (§7.3.2) ─────────────────────────────────────────
@@ -437,215 +438,215 @@ export const METRIC_DICTIONARY = [
     metric_id: 'network.nvlink.bandwidth', display_name: 'NVLink / NVSwitch / PCIe Bandwidth', unit: 'GB/s',
     level: 'L1', priority: 'P1', layer: 'network', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'avg', sources: ['dcgm_exporter', 'ppu_sdk_exporter'],
-    def: 'Intra-node interconnect bandwidth on NVLink/NVSwitch/PCIe (or PPU inter-chip links).',
-    calc: 'measured_bytes_per_s on each link, summed/averaged per node.',
-    sig: 'Caps how fast gradients move between cards inside a node.',
+    def: 'NVLink/NVSwitch/PCIe（或 PPU 片间链路）上的节点内互连带宽。',
+    calc: '各链路 实测字节/秒，按节点求和/平均。',
+    sig: '决定节点内各卡之间梯度传输的速度上限。',
     related: ['accelerator.link.nvlink_pcie.errors', 'comm.bandwidth.efficiency.pct'],
-    confused: [{ name: 'Inter-node fabric bandwidth', diff: 'This is on-host links; fabric bandwidth is across the RoCE/IB network.' }],
-    notes: 'PPU inter-chip interconnect (700/800 GB/s) reported through the PPU adapter.'
+    confused: [{ name: 'Inter-node fabric bandwidth', diff: '这是主机内链路；网络带宽是跨 RoCE/IB 网络。' }],
+    notes: 'PPU 片间互连（700/800 GB/s）通过 PPU 适配器上报。'
   },
   {
     metric_id: 'network.intra.link_status', display_name: 'Intra-Node Link Status / Errors', unit: 'state',
     level: 'L1', priority: 'P1', layer: 'network', type: 'state', vendors: NV_PPU,
     default_aggregation: 'last', sources: ['dcgm_exporter', 'ppu_sdk_exporter'],
-    def: 'Up/down/degraded status and error counts of intra-node links.',
-    calc: 'Discrete link state plus increase(link_error_counter).',
-    sig: 'A degraded link silently halves effective interconnect bandwidth.',
+    def: '节点内链路的 up/down/降级状态及错误计数。',
+    calc: '离散链路状态加 increase(链路错误计数器)。',
+    sig: '降级链路会悄悄使有效互连带宽减半。',
     related: ['network.nvlink.bandwidth', 'accelerator.link.nvlink_pcie.errors'],
     confused: [],
-    notes: 'Correlate with collective-communication latency spikes.'
+    notes: '与集合通信延迟尖峰关联分析。'
   },
   {
     metric_id: 'network.fabric.bandwidth', display_name: 'RoCE / IB Bandwidth', unit: 'Gb/s',
     level: 'L1', priority: 'P1', layer: 'network', type: 'gauge', vendors: ALL,
     default_aggregation: 'avg', sources: ['network_exporter'],
-    def: 'Inter-node fabric bandwidth over RoCE or InfiniBand.',
-    calc: 'measured tx/rx bytes_per_s per NIC/port.',
-    sig: 'Determines multi-node training scalability.',
+    def: '通过 RoCE 或 InfiniBand 的节点间网络带宽。',
+    calc: '各 NIC/端口 实测收发字节/秒。',
+    sig: '决定多节点训练的可扩展性。',
     related: ['network.fabric.pfc_ecn', 'network.latency.p99.us', 'comm.bandwidth.efficiency.pct'],
-    confused: [{ name: 'NVLink bandwidth', diff: 'Fabric is between nodes; NVLink is within a node.' }],
-    notes: 'fabric_id/nic_id labels keep cross-fabric results separated.'
+    confused: [{ name: 'NVLink bandwidth', diff: '网络是节点之间；NVLink 是节点内部。' }],
+    notes: 'fabric_id/nic_id 标签使跨网络结果保持分离。'
   },
   {
     metric_id: 'network.fabric.pfc_ecn', display_name: 'PFC / ECN', unit: 'events',
     level: 'L1', priority: 'P1', layer: 'network', type: 'increase', vendors: ALL,
     default_aggregation: 'increase', sources: ['network_exporter'],
-    def: 'Priority-flow-control pauses and ECN congestion marks.',
-    calc: 'increase(pfc_pause_frames) and increase(ecn_marked_packets).',
-    sig: 'High PFC/ECN means fabric congestion that stalls collectives.',
+    def: '优先级流控暂停帧与 ECN 拥塞标记。',
+    calc: 'increase(pfc 暂停帧) 与 increase(ecn 标记报文)。',
+    sig: '高 PFC/ECN 意味着网络拥塞，会拖住集合通信。',
     related: ['network.fabric.bandwidth', 'training.wait.communication.pct'],
-    confused: [{ name: 'Bit errors', diff: 'PFC/ECN is congestion control; bit errors are physical-layer corruption.' }],
-    notes: 'Sustained pauses indicate a need for topology or QoS tuning.'
+    confused: [{ name: 'Bit errors', diff: 'PFC/ECN 是拥塞控制；位错误是物理层损坏。' }],
+    notes: '持续暂停意味着需要进行拓扑或 QoS 调优。'
   },
   {
     metric_id: 'network.port.down.events', display_name: 'Port Down', unit: 'events',
     level: 'L1', priority: 'P0', layer: 'network', type: 'increase', vendors: ALL,
     default_aggregation: 'increase', sources: ['network_exporter'],
-    def: 'NIC/switch port down/flap events.',
-    calc: 'increase(port_down_counter) over the window.',
-    sig: 'A down port removes a node from collective groups, stalling the job.',
+    def: 'NIC/交换机端口 down/抖动事件。',
+    calc: 'increase(端口 down 计数器) 在窗口内的增量。',
+    sig: '端口宕掉会把节点移出集合通信组，使作业卡住。',
     related: ['network.fabric.bandwidth', 'network.bit.errors'],
     confused: [],
-    notes: 'Often the root cause behind a sudden communication-wait spike.'
+    notes: '常是通信等待突然飙升的根因。'
   },
   {
     metric_id: 'network.bit.errors', display_name: 'Bit Errors', unit: 'events',
     level: 'L1', priority: 'P1', layer: 'network', type: 'increase', vendors: ALL,
     default_aggregation: 'increase', sources: ['network_exporter'],
-    def: 'Physical-layer bit/symbol error counts on fabric links.',
-    calc: 'increase(symbol_error_counter) over the window.',
-    sig: 'Rising bit errors precede port flaps and retransmission storms.',
+    def: '网络链路上的物理层位/符号错误计数。',
+    calc: 'increase(符号错误计数器) 在窗口内的增量。',
+    sig: '位错误上升是端口抖动与重传风暴的前兆。',
     related: ['network.port.down.events', 'expert.ebpf.syscall'],
-    confused: [{ name: 'PFC/ECN', diff: 'Bit errors are corruption; PFC/ECN is congestion signaling.' }],
-    notes: 'Check cabling/optics on offending ports.'
+    confused: [{ name: 'PFC/ECN', diff: '位错误是损坏；PFC/ECN 是拥塞信令。' }],
+    notes: '检查问题端口的线缆/光模块。'
   },
   {
     metric_id: 'network.latency.p99.us', display_name: 'Network P99 Latency', unit: 'µs',
     level: 'L1', priority: 'P1', layer: 'network', type: 'gauge', vendors: ALL,
     default_aggregation: 'p99', sources: ['network_exporter'],
-    def: 'Tail (P99) inter-node network latency.',
-    calc: 'p99(round_trip_latency) over the window.',
-    sig: 'Tail latency dominates synchronous collective performance.',
+    def: '节点间网络的尾部（P99）延迟。',
+    calc: '窗口内 p99(往返延迟)。',
+    sig: '尾延迟主导同步集合通信的性能。',
     related: ['comm.allreduce.duration.ms', 'network.fabric.pfc_ecn'],
-    confused: [{ name: 'AllReduce latency', diff: 'Network latency is link-level; AllReduce latency is the collective operation end-to-end.' }],
-    notes: 'Use P99 not average — averages hide the stragglers that block sync.'
+    confused: [{ name: 'AllReduce latency', diff: '网络延迟是链路级；AllReduce 延迟是集合操作端到端。' }],
+    notes: '用 P99 而非平均值——平均会掩盖阻塞同步的离群者。'
   },
   {
     metric_id: 'comm.allreduce.duration.ms', display_name: 'Collective Communication Latency', unit: 'ms',
     level: 'L1', priority: 'P1', layer: 'comm', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'p95', sources: ['nccl', 'training_hook'],
-    def: 'AllReduce / AllGather / ReduceScatter operation latency.',
-    calc: 'p50/p95/p99 of per-collective duration captured by the framework hook / NCCL.',
-    sig: 'Core distributed-training cost; slow collectives throttle every step.',
+    def: 'AllReduce / AllGather / ReduceScatter 操作延迟。',
+    calc: '由框架 hook / NCCL 捕获的每次集合操作时长的 p50/p95/p99。',
+    sig: '分布式训练的核心开销；慢集合会拖慢每一步。',
     related: ['comm.bandwidth.efficiency.pct', 'training.wait.communication.pct', 'network.latency.p99.us'],
-    confused: [{ name: 'Communication wait ratio', diff: 'A single slow op may not matter; wait ratio shows whether it blocks training.' }],
-    notes: 'Enable NCCL debug (expert) only for anomalous jobs to avoid log flooding.'
+    confused: [{ name: 'Communication wait ratio', diff: '单次慢操作未必有影响；等待占比才反映是否阻塞训练。' }],
+    notes: '仅对异常作业开启 NCCL 调试（专家级）以避免日志泛滥。'
   },
   {
     metric_id: 'comm.bandwidth.efficiency.pct', display_name: 'Communication Bandwidth Efficiency', unit: '%',
     level: 'L1', priority: 'P1', layer: 'comm', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'avg', sources: ['nccl', 'training_hook'],
-    def: 'Achieved collective bandwidth / theoretical bus bandwidth.',
-    calc: 'measured_busbw / peak_busbw × 100.',
-    sig: 'Low efficiency signals suboptimal NCCL algorithm/topology or contention.',
+    def: '实测集合带宽 / 理论总线带宽。',
+    calc: '实测 busbw / 峰值 busbw × 100。',
+    sig: '效率低意味着 NCCL 算法/拓扑欠优或存在争用。',
     related: ['comm.allreduce.duration.ms', 'network.nvlink.bandwidth'],
-    confused: [{ name: 'Fabric bandwidth', diff: 'Efficiency is relative to peak; fabric bandwidth is the absolute rate.' }],
-    notes: 'Compare within the same parallel strategy; algorithm selection changes the ceiling.'
+    confused: [{ name: 'Fabric bandwidth', diff: '效率相对峰值；网络带宽是绝对速率。' }],
+    notes: '在相同并行策略下比较；算法选择会改变上限。'
   },
   {
     metric_id: 'training.wait.communication.pct', display_name: 'Communication Wait Ratio', unit: '%',
     level: 'L1', priority: 'P1', layer: 'training', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'avg', sources: ['training_hook', 'nccl'],
     scope: ['job', 'node'],
-    def: 'Proportion of a step spent waiting on collective communication or sync barriers.',
-    calc: 'communication_wait_time / step_time × 100.',
-    sig: 'Tells you whether communication is on the critical path of the step.',
+    def: '一个 step 中等待集合通信或同步屏障的时间占比。',
+    calc: '通信等待时间 / step 时间 × 100。',
+    sig: '判断通信是否处于 step 的关键路径上。',
     related: ['comm.allreduce.duration.ms', 'training.wait.data.pct', 'training.wait.barrier.pct'],
-    confused: [{ name: 'NCCL AllReduce latency', diff: 'A single slow op may not affect total training; high wait ratio means it blocks training.' }],
-    notes: '> 30% FOR 10m raises a communication-bottleneck alert.'
+    confused: [{ name: 'NCCL AllReduce latency', diff: '单次慢操作未必影响整体训练；高等待占比意味着阻塞训练。' }],
+    notes: '> 30% 持续 10m 触发通信瓶颈告警。'
   },
   {
     metric_id: 'dataloader.iteration.ms', display_name: 'DataLoader Iteration Time', unit: 'ms',
     level: 'L1', priority: 'P1', layer: 'storage', type: 'gauge', vendors: ALL,
     default_aggregation: 'p95', sources: ['dataloader_hook'],
-    def: 'Time per step spent reading, decoding and preprocessing data.',
-    calc: 'p50/p95 of per-iteration DataLoader duration.',
-    sig: 'The most common silent training bottleneck after communication.',
+    def: '每个 step 用于读取、解码与预处理数据的耗时。',
+    calc: '每次迭代 DataLoader 时长的 p50/p95。',
+    sig: '继通信之后最常见的隐性训练瓶颈。',
     related: ['training.wait.data.pct', 'dataloader.prefetch.queue', 'system.cpu.iowait.pct'],
     confused: [
-      { name: 'IOWait', diff: 'DataLoader time is a training-loop view; IOWait is the system view.' },
-      { name: 'CPU utilization', diff: 'High CPU may cause slow DataLoader, but they measure different things.' }
+      { name: 'IOWait', diff: 'DataLoader 耗时是训练循环视角；IOWait 是系统视角。' },
+      { name: 'CPU utilization', diff: '高 CPU 可能导致 DataLoader 变慢，但二者衡量不同对象。' }
     ],
-    notes: 'p95 > baseline × 1.2 flags a data bottleneck.'
+    notes: 'p95 > 基线 × 1.2 标记为数据瓶颈。'
   },
   {
     metric_id: 'dataloader.prefetch.queue', display_name: 'Prefetch Queue Depth', unit: 'items',
     level: 'L1', priority: 'P2', layer: 'storage', type: 'gauge', vendors: ALL,
     default_aggregation: 'avg', sources: ['dataloader_hook'],
-    def: 'Depth of the input prefetch queue feeding the training loop.',
-    calc: 'avg(queued_batches) over the window.',
-    sig: 'A chronically empty queue means the loader cannot keep up with the device.',
+    def: '喂给训练循环的输入预取队列深度。',
+    calc: '窗口内 avg(已排队批次)。',
+    sig: '队列长期为空意味着加载器跟不上设备速度。',
     related: ['dataloader.iteration.ms', 'training.wait.data.pct'],
     confused: [],
-    notes: 'Scale workers or prefetch factor when the queue starves.'
+    notes: '队列枯竭时增加 worker 或预取因子。'
   },
   {
     metric_id: 'dataloader.copy.h2d', display_name: 'CPU→GPU/PPU Copy', unit: 'ms',
     level: 'L1', priority: 'P2', layer: 'storage', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'p95', sources: ['dataloader_hook', 'profiler'],
-    def: 'Host-to-device memory copy time per step.',
-    calc: 'p95(host_to_device_copy_ms).',
-    sig: 'Large copies overlap poorly with compute and inflate step time.',
+    def: '每个 step 主机到设备的内存拷贝耗时。',
+    calc: 'p95(主机到设备拷贝毫秒)。',
+    sig: '大拷贝与计算重叠不佳，会拉长 step 时间。',
     related: ['dataloader.iteration.ms', 'system.numa.imbalance'],
     confused: [],
-    notes: 'Use pinned memory and NUMA-local staging to reduce.'
+    notes: '使用锁页内存与 NUMA 本地暂存以减少耗时。'
   },
   {
     metric_id: 'training.wait.data.pct', display_name: 'Data Wait Ratio', unit: '%',
     level: 'L1', priority: 'P1', layer: 'training', type: 'gauge', vendors: ALL,
     default_aggregation: 'avg', sources: ['training_hook', 'dataloader_hook'],
     scope: ['job', 'accelerator'],
-    def: 'Proportion of a step spent waiting on data (DataLoader / IO).',
-    calc: 'data_wait_time / step_time × 100.',
-    sig: 'Quantifies how much the input pipeline is starving the device.',
+    def: '一个 step 中等待数据（DataLoader / IO）的时间占比。',
+    calc: '数据等待时间 / step 时间 × 100。',
+    sig: '量化输入流水线对设备的"饿死"程度。',
     related: ['dataloader.iteration.ms', 'system.cpu.iowait.pct', 'training.wait.communication.pct'],
-    confused: [{ name: 'IOWait', diff: 'Data wait is the training perspective; IOWait/CPU are system perspectives.' }],
-    notes: 'High memory + low compute + high data wait is the classic input-bottleneck signature.'
+    confused: [{ name: 'IOWait', diff: '数据等待是训练视角；IOWait/CPU 是系统视角。' }],
+    notes: '高显存 + 低计算 + 高数据等待，是典型的输入瓶颈特征。'
   },
   {
     metric_id: 'checkpoint.save.seconds', display_name: 'Checkpoint Save / Restore Time', unit: 's',
     level: 'L1', priority: 'P1', layer: 'storage', type: 'gauge', vendors: ALL,
     default_aggregation: 'max', sources: ['checkpoint_hook'],
-    def: 'Time to save or restore a checkpoint.',
-    calc: 'max(save_duration) and max(restore_duration) per event.',
-    sig: 'Long synchronous saves stall every rank; restore time affects recovery RTO.',
+    def: '保存或恢复一个 checkpoint 的耗时。',
+    calc: '每次事件的 max(保存时长) 与 max(恢复时长)。',
+    sig: '长时间的同步保存会卡住所有 rank；恢复时间影响恢复 RTO。',
     related: ['checkpoint.write.bandwidth', 'checkpoint.file.size_gb', 'checkpoint.async.queue_depth'],
     confused: [],
-    notes: 'Prefer async/ sharded checkpointing to hide save latency.'
+    notes: '优先采用异步/分片 checkpoint 以隐藏保存延迟。'
   },
   {
     metric_id: 'checkpoint.file.size_gb', display_name: 'Checkpoint File Size', unit: 'GB',
     level: 'L1', priority: 'P2', layer: 'storage', type: 'gauge', vendors: ALL,
     default_aggregation: 'last', sources: ['checkpoint_hook'],
-    def: 'Size of the most recent checkpoint.',
-    calc: 'sum(shard_bytes) / 1e9.',
-    sig: 'Drives save time, storage cost and restore RTO.',
+    def: '最近一次 checkpoint 的大小。',
+    calc: 'sum(分片字节) / 1e9。',
+    sig: '决定保存时间、存储成本与恢复 RTO。',
     related: ['checkpoint.save.seconds', 'checkpoint.write.bandwidth'],
     confused: [],
-    notes: 'Grows with model + optimizer state; sharding spreads it across ranks.'
+    notes: '随模型 + 优化器状态增长；分片可在各 rank 间分摊。'
   },
   {
     metric_id: 'checkpoint.write.bandwidth', display_name: 'Checkpoint Write Bandwidth', unit: 'GB/s',
     level: 'L1', priority: 'P2', layer: 'storage', type: 'gauge', vendors: ALL,
     default_aggregation: 'avg', sources: ['checkpoint_hook', 'storage_exporter'],
-    def: 'Throughput achieved while writing a checkpoint.',
-    calc: 'checkpoint_bytes / save_seconds.',
-    sig: 'Low write bandwidth lengthens stalls and may indicate storage contention.',
+    def: '写入 checkpoint 时达到的吞吐。',
+    calc: 'checkpoint 字节数 / 保存秒数。',
+    sig: '写带宽低会拉长停顿，也可能意味着存储争用。',
     related: ['checkpoint.save.seconds', 'checkpoint.file.size_gb'],
     confused: [],
-    notes: 'Compare against the storage backend ceiling and concurrent writers.'
+    notes: '对照存储后端上限与并发写入者进行评估。'
   },
   {
     metric_id: 'checkpoint.async.queue_depth', display_name: 'Checkpoint Async Queue Depth', unit: 'items',
     level: 'L1', priority: 'P2', layer: 'storage', type: 'gauge', vendors: ALL,
     default_aggregation: 'max', sources: ['checkpoint_hook'],
-    def: 'Pending writes in the asynchronous checkpoint queue.',
-    calc: 'max(async_write_queue_length).',
-    sig: 'A growing queue means saves are not keeping up and may block soon.',
+    def: '异步 checkpoint 队列中待写入的数量。',
+    calc: 'max(异步写队列长度)。',
+    sig: '队列增长意味着保存跟不上，可能很快转为阻塞。',
     related: ['checkpoint.write.bandwidth', 'checkpoint.failures'],
     confused: [],
-    notes: 'Backpressure here eventually turns async saves into blocking ones.'
+    notes: '此处的反压最终会把异步保存变为阻塞保存。'
   },
   {
     metric_id: 'checkpoint.failures', display_name: 'Checkpoint Failures', unit: 'events',
     level: 'L1', priority: 'P1', layer: 'storage', type: 'increase', vendors: ALL,
     default_aggregation: 'increase', sources: ['checkpoint_hook'],
-    def: 'Failed checkpoint save/restore attempts.',
-    calc: 'increase(checkpoint_failure_counter).',
-    sig: 'Failed checkpoints risk losing training progress on a crash.',
+    def: 'checkpoint 保存/恢复失败次数。',
+    calc: 'increase(checkpoint 失败计数器)。',
+    sig: '失败的 checkpoint 在崩溃时有丢失训练进度的风险。',
     related: ['checkpoint.save.seconds', 'k8s.pod.restarts'],
     confused: [],
-    notes: 'Correlate with storage errors and pod restarts.'
+    notes: '与存储错误和 Pod 重启关联分析。'
   },
 
   // ── L1 · Training efficiency & business ops (§7.3.3) ────────────────────────
@@ -654,252 +655,252 @@ export const METRIC_DICTIONARY = [
     level: 'L1', priority: 'P1', layer: 'training', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'p95', sources: ['training_hook'],
     scope: ['job'],
-    def: 'Wall-clock time per training step, summarized P50/P95/P99.',
-    calc: 'percentiles of per-step duration from the framework hook.',
-    sig: 'The master efficiency metric; everything else explains its breakdown.',
+    def: '每个训练 step 的墙钟耗时，汇总为 P50/P95/P99。',
+    calc: '来自框架 hook 的每步时长百分位。',
+    sig: '核心效率指标；其余指标都在解释它的构成。',
     related: ['training.step.breakdown', 'training.throughput.tokens', 'training.wait.communication.pct'],
-    confused: [{ name: 'Throughput', diff: 'Step time is per-iteration latency; throughput folds in batch/seq length.' }],
-    notes: 'Baseline-deviation alert: step time > same-job historical P95 × 1.2.'
+    confused: [{ name: 'Throughput', diff: 'Step 时间是每次迭代的延迟；吞吐还折入了批大小/序列长度。' }],
+    notes: '基线偏离告警：step 时间 > 同作业历史 P95 × 1.2。'
   },
   {
     metric_id: 'training.step.breakdown', display_name: 'Step-Time Breakdown', unit: '%',
     level: 'L1', priority: 'P1', layer: 'training', type: 'composite', vendors: NV_PPU,
     default_aggregation: 'avg', sources: ['training_hook', 'profiler'],
     scope: ['job'],
-    def: 'Decomposition of a step into forward, backward, optimizer, communication, data loading, checkpoint and idle/barrier.',
-    calc: 'each phase_time / step_time × 100 from hook + profiler instrumentation.',
-    sig: 'Turns "the job is slow" into "which phase is slow" — the core diagnosis path.',
+    def: '将一个 step 分解为前向、反向、优化器、通信、数据加载、checkpoint 与空闲/屏障。',
+    calc: '由 hook + profiler 插桩得到的 各阶段时间 / step 时间 × 100。',
+    sig: '把"作业慢"变成"哪个阶段慢"——核心诊断路径。',
     related: ['training.step.time.ms', 'training.wait.communication.pct', 'training.wait.data.pct', 'training.wait.barrier.pct'],
-    confused: [{ name: 'Idle/Barrier', diff: 'Idle is the outcome phase; communication/data wait are causal phases inside the step.' }],
-    notes: 'Phases: Forward, Backward, Optimizer, Communication, Data Loading, Checkpoint, Idle/Barrier.'
+    confused: [{ name: 'Idle/Barrier', diff: '空闲是结果阶段；通信/数据等待是 step 内的成因阶段。' }],
+    notes: '阶段：前向、反向、优化器、通信、数据加载、Checkpoint、空闲/屏障。'
   },
   {
     metric_id: 'training.throughput.samples', display_name: 'Throughput (Samples/s)', unit: 'samples/s',
     level: 'L1', priority: 'P1', layer: 'training', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'sum', sources: ['training_hook'],
-    def: 'Samples processed per second.',
-    calc: 'sum(samples) / elapsed_seconds.',
-    sig: 'Throughput view for non-token workloads (vision, audio, multimodal).',
+    def: '每秒处理的样本数。',
+    calc: 'sum(样本数) / 已用秒数。',
+    sig: '面向非 token 负载（视觉、音频、多模态）的吞吐视角。',
     related: ['training.throughput.tokens', 'training.throughput.per_card'],
-    confused: [{ name: 'Tokens/s', diff: 'Samples/s vs token-level throughput; choose per modality.' }],
-    notes: 'Normalize by sequence length when comparing to Tokens/s.'
+    confused: [{ name: 'Tokens/s', diff: 'Samples/s 与 token 级吞吐；按模态选择。' }],
+    notes: '与 Tokens/s 比较时按序列长度归一化。'
   },
   {
     metric_id: 'training.throughput.per_card', display_name: 'Per-Card Throughput', unit: 'tok/s',
     level: 'L1', priority: 'P1', layer: 'training', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'avg', sources: ['training_hook'],
-    def: 'Throughput attributed to a single accelerator.',
-    calc: 'job_throughput / active_card_count.',
-    sig: 'Reveals stragglers and per-card efficiency differences.',
+    def: '归属到单张加速卡的吞吐。',
+    calc: '作业吞吐 / 活跃卡数。',
+    sig: '揭示掉队卡与单卡效率差异。',
     related: ['training.throughput.tokens', 'training.mfu.pct'],
-    confused: [{ name: 'Cluster total throughput', diff: 'Per-card normalizes by card count; cluster total is the aggregate.' }],
-    notes: 'Compare only within the same model + parallel strategy.'
+    confused: [{ name: 'Cluster total throughput', diff: '单卡按卡数归一化；集群总量是聚合值。' }],
+    notes: '仅在相同型号 + 并行策略下比较。'
   },
   {
     metric_id: 'training.throughput.cluster', display_name: 'Cluster Total Throughput', unit: 'tok/s',
     level: 'L1', priority: 'P1', layer: 'training', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'sum', sources: ['training_hook'],
-    def: 'Aggregate throughput across all training jobs in scope.',
-    calc: 'sum(job_throughput) across the filter set.',
-    sig: 'Top-line cluster output for capacity and trend reporting.',
+    def: '范围内所有训练作业的聚合吞吐。',
+    calc: 'sum(各作业吞吐) 跨筛选集合。',
+    sig: '用于容量与趋势报告的集群顶层产出。',
     related: ['training.throughput.tokens', 'training.throughput.per_card'],
     confused: [],
-    notes: 'Roll up by region/model to compare clusters fairly.'
+    notes: '按区域/型号汇总以公平比较集群。'
   },
   {
     metric_id: 'training.mfu.pct', display_name: 'MFU (Model FLOPs Utilization)', unit: '%',
     level: 'L1', priority: 'P1', layer: 'training', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'token_weighted', sources: ['training_hook'],
     scope: ['job', 'accelerator'],
-    def: 'Actual model FLOPs per second / theoretical peak FLOPs of the accelerator model.',
-    calc: 'achieved_model_flops_per_s / accelerator_peak_flops_for_precision × 100.',
-    sig: 'The truest measure of training efficiency — how much of the silicon you actually use.',
+    def: '实际模型每秒 FLOPs / 加速卡型号的理论峰值 FLOPs。',
+    calc: '实测模型 FLOPs/秒 / 该精度下加速卡峰值 FLOPs × 100。',
+    sig: '衡量训练效率最真实的指标——你究竟用上了多少硅片算力。',
     related: ['training.achieved.tflops', 'accelerator.utilization.compute.pct', 'training.throughput.tokens'],
     confused: [
-      { name: 'GPU utilization', diff: 'GPU utilization reflects busy/idle; MFU reflects effective model compute efficiency.' },
-      { name: 'Tokens/s', diff: 'Tokens/s is business throughput affected by batch size, sequence length and parallel strategy.' }
+      { name: 'GPU utilization', diff: 'GPU 利用率反映繁忙/空闲；MFU 反映有效模型计算效率。' },
+      { name: 'Tokens/s', diff: 'Tokens/s 是受批大小、序列长度与并行策略影响的业务吞吐。' }
     ],
-    notes: 'Needs model FLOPs and precision-aware peak metadata; do not average across models — use token/step weighting. High GPU util + low MFU usually means low kernel efficiency, communication wait, padding waste or a poor parallel strategy.'
+    notes: '需要模型 FLOPs 与精度感知的峰值元数据；不要跨型号平均——使用 token/step 加权。GPU 高利用 + 低 MFU 通常意味着内核效率低、通信等待、padding 浪费或并行策略不当。'
   },
   {
     metric_id: 'training.achieved.tflops', display_name: 'Achieved TFLOPS', unit: 'TFLOPS',
     level: 'L1', priority: 'P1', layer: 'training', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'avg', sources: ['training_hook', 'profiler'],
-    def: 'Measured floating-point throughput delivered to the model.',
-    calc: 'model_flops / elapsed_seconds / 1e12.',
-    sig: 'Absolute companion to MFU for matmul efficiency analysis.',
+    def: '实际交付给模型的浮点吞吐。',
+    calc: '模型 FLOPs / 已用秒数 / 1e12。',
+    sig: 'MFU 的绝对值搭档，用于矩阵乘效率分析。',
     related: ['training.mfu.pct', 'accelerator.utilization.tensor.pct'],
-    confused: [{ name: 'MFU', diff: 'TFLOPS is absolute; MFU is the ratio to the hardware peak.' }],
-    notes: 'Precision matters — quote alongside FP16/BF16/FP8 peak.'
+    confused: [{ name: 'MFU', diff: 'TFLOPS 是绝对值；MFU 是相对硬件峰值的比率。' }],
+    notes: '精度很关键——请与 FP16/BF16/FP8 峰值一并标注。'
   },
   {
     metric_id: 'accelerator.idle.pct', display_name: 'GPU/PPU Idle Time', unit: '%',
     level: 'L1', priority: 'P1', layer: 'training', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'avg', sources: ['training_hook', 'profiler'],
-    def: 'Proportion of a step during which the device has no effective kernel/operator execution.',
-    calc: 'idle_time / step_time × 100.',
-    sig: 'Quantifies wasted device time; the symptom that wait ratios explain.',
+    def: '一个 step 中设备无有效内核/算子执行的时间占比。',
+    calc: '空闲时间 / step 时间 × 100。',
+    sig: '量化被浪费的设备时间；是各等待占比所要解释的症状。',
     related: ['training.wait.communication.pct', 'training.wait.data.pct', 'training.wait.barrier.pct'],
-    confused: [{ name: 'Communication / data wait', diff: 'Idle is the outcome; communication and data wait are the causal breakdown.' }],
-    notes: 'Decompose idle into its causes before optimizing.'
+    confused: [{ name: 'Communication / data wait', diff: '空闲是结果；通信与数据等待是成因分解。' }],
+    notes: '在优化前先把空闲拆解为各成因。'
   },
   {
     metric_id: 'training.wait.barrier.pct', display_name: 'Synchronization Barrier Wait', unit: '%',
     level: 'L1', priority: 'P1', layer: 'training', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'avg', sources: ['training_hook'],
-    def: 'Proportion of a step spent waiting at synchronization barriers for the slowest rank.',
-    calc: 'barrier_wait_time / step_time × 100.',
-    sig: 'Exposes straggler cards/nodes dragging the whole job.',
+    def: '一个 step 中在同步屏障处等待最慢 rank 的时间占比。',
+    calc: '屏障等待时间 / step 时间 × 100。',
+    sig: '暴露拖累整个作业的掉队卡/节点。',
     related: ['training.wait.communication.pct', 'accelerator.idle.pct'],
-    confused: [{ name: 'Communication wait', diff: 'Barrier wait is sync stalls from stragglers; communication wait is collective transfer time.' }],
-    notes: 'Cross-reference the accelerator skew matrix to find the straggler.'
+    confused: [{ name: 'Communication wait', diff: '屏障等待是掉队者引发的同步停顿；通信等待是集合传输时间。' }],
+    notes: '交叉对照加速卡偏差矩阵以定位掉队者。'
   },
   {
     metric_id: 'training.loss.spike', display_name: 'Loss Spike', unit: 'events',
     level: 'L1', priority: 'P1', layer: 'training', type: 'event', vendors: NV_PPU,
     default_aggregation: 'increase', sources: ['training_hook'],
-    def: 'Detected sudden increases in training loss.',
-    calc: 'loss > rolling_mean + k × rolling_std (spike detector).',
-    sig: 'Early warning of divergence, bad data, or LR problems.',
+    def: '检测到的训练 loss 突增。',
+    calc: 'loss > 滑动均值 + k × 滑动标准差（尖峰检测器）。',
+    sig: '发散、坏数据或学习率问题的早期预警。',
     related: ['training.nan_inf.events', 'training.gradient.anomaly', 'training.lr.anomaly'],
     confused: [],
-    notes: 'Overlay on the loss curve and step timeline for context.'
+    notes: '叠加在 loss 曲线与 step 时间线上查看上下文。'
   },
   {
     metric_id: 'training.nan_inf.events', display_name: 'NaN / Inf', unit: 'events',
     level: 'L1', priority: 'P0', layer: 'training', type: 'increase', vendors: NV_PPU,
     default_aggregation: 'increase', sources: ['training_hook'],
-    def: 'Occurrences of NaN or Inf in loss/gradients/activations.',
-    calc: 'increase(nan_inf_counter) over the window.',
-    sig: 'Corrupts training; usually requires rollback to a checkpoint.',
+    def: 'loss/梯度/激活中出现 NaN 或 Inf 的次数。',
+    calc: 'increase(nan_inf 计数器) 在窗口内的增量。',
+    sig: '会破坏训练；通常需要回滚到 checkpoint。',
     related: ['training.loss.spike', 'training.gradient.anomaly'],
     confused: [],
-    notes: 'Common with FP16 overflow — consider loss scaling / BF16.'
+    notes: '常见于 FP16 溢出——考虑 loss scaling / BF16。'
   },
   {
     metric_id: 'training.gradient.anomaly', display_name: 'Gradient Explosion / Vanishing', unit: 'events',
     level: 'L1', priority: 'P1', layer: 'training', type: 'event', vendors: NV_PPU,
     default_aggregation: 'increase', sources: ['training_hook'],
-    def: 'Gradient norm crossing explosion or vanishing thresholds.',
-    calc: 'grad_norm > high_threshold OR < low_threshold.',
-    sig: 'Indicates instability requiring clipping or LR adjustment.',
+    def: '梯度范数越过爆炸或消失阈值。',
+    calc: 'grad_norm > 高阈值 或 < 低阈值。',
+    sig: '表明不稳定，需要梯度裁剪或调整学习率。',
     related: ['training.loss.spike', 'training.lr.anomaly', 'training.nan_inf.events'],
     confused: [],
-    notes: 'Track grad-norm trend, not just threshold crossings.'
+    notes: '关注梯度范数趋势，而不仅是阈值穿越。'
   },
   {
     metric_id: 'training.lr.anomaly', display_name: 'Learning-Rate Anomaly', unit: 'events',
     level: 'L1', priority: 'P2', layer: 'training', type: 'event', vendors: NV_PPU,
     default_aggregation: 'increase', sources: ['training_hook'],
-    def: 'Learning-rate values or schedule deviating from the expected curve.',
-    calc: 'lr deviates from the configured schedule beyond tolerance.',
-    sig: 'A misconfigured schedule silently wrecks convergence.',
+    def: '学习率取值或调度偏离预期曲线。',
+    calc: 'lr 偏离配置的调度超过容差。',
+    sig: '配置错误的调度会悄悄破坏收敛。',
     related: ['training.loss.spike', 'training.gradient.anomaly'],
     confused: [],
-    notes: 'Overlay the LR schedule with the loss curve to validate.'
+    notes: '将学习率调度与 loss 曲线叠加以校验。'
   },
   {
     metric_id: 'cost.card_hours', display_name: 'Card-Hours', unit: 'card-h',
     level: 'L1', priority: 'P1', layer: 'cost', type: 'sum', vendors: ALL,
     default_aggregation: 'sum', sources: ['scheduler', 'billing'],
     scope: ['job', 'user', 'tenant'],
-    def: 'Number of allocated or used accelerator cards × time.',
-    calc: 'sum(allocated_card_count_per_interval × interval_seconds) / 3600.',
-    sig: 'The fundamental unit of compute cost and chargeback.',
+    def: '已分配或已使用的加速卡数 × 时间。',
+    calc: 'sum(已分配卡数/区间 × 区间秒数) / 3600。',
+    sig: '算力成本与计费的基本单位。',
     related: ['cost.idle_card_hours', 'cost.goodput.pct', 'cost.per_million_tokens'],
     confused: [
-      { name: 'Idle card-hours', diff: 'Card-hours is total consumption; idle card-hours is the wasted subset.' },
-      { name: 'Goodput', diff: 'Card-hours is a cost metric; Goodput measures the ratio of effective training time.' }
+      { name: 'Idle card-hours', diff: '卡时是总消耗；空闲卡时是其中被浪费的子集。' },
+      { name: 'Goodput', diff: '卡时是成本指标；Goodput 衡量有效训练时间占比。' }
     ],
-    notes: 'Track allocated vs active card-hours to expose waste.'
+    notes: '跟踪已分配卡时 vs 活跃卡时以暴露浪费。'
   },
   {
     metric_id: 'cost.per_million_tokens', display_name: 'Cost per Million Tokens', unit: '$/Mtok',
     level: 'L1', priority: 'P1', layer: 'cost', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'avg', sources: ['billing', 'training_hook'],
-    def: 'Compute cost to train one million tokens.',
-    calc: '(card_hours × card_hour_price) / (tokens_processed / 1e6).',
-    sig: 'The unit-economics metric leadership cares about.',
+    def: '训练一百万 token 的算力成本。',
+    calc: '(卡时 × 卡时单价) / (已处理 token 数 / 1e6)。',
+    sig: '领导层关注的单位经济指标。',
     related: ['cost.card_hours', 'training.throughput.tokens', 'cost.goodput.pct'],
-    confused: [{ name: 'Card-hours', diff: 'Cost/Mtok normalizes spend by output; card-hours is raw consumption.' }],
-    notes: '> baseline × 1.3 (or Goodput < 70%) flags a cost anomaly.'
+    confused: [{ name: 'Card-hours', diff: '每百万 token 成本按产出归一化开支；卡时是原始消耗。' }],
+    notes: '> 基线 × 1.3（或 Goodput < 70%）标记为成本异常。'
   },
   {
     metric_id: 'cost.goodput.pct', display_name: 'Goodput', unit: '%',
     level: 'L1', priority: 'P1', layer: 'cost', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'avg', sources: ['training_hook', 'scheduler'],
-    def: 'Ratio of effective (useful) training time to wall-clock allocated time.',
-    calc: 'useful_training_time_seconds / wall_clock_allocated_seconds × 100.',
-    sig: 'Captures real productivity lost to restarts, stalls and waste.',
+    def: '有效（有用）训练时间与墙钟已分配时间之比。',
+    calc: '有效训练秒数 / 墙钟已分配秒数 × 100。',
+    sig: '捕捉因重启、停顿与浪费而损失的真实生产力。',
     related: ['cost.card_hours', 'accelerator.idle.pct', 'cost.per_million_tokens'],
-    confused: [{ name: 'Card-hours', diff: 'Goodput is an efficiency ratio; card-hours is absolute consumption.' }],
-    notes: 'Target ≥ 80%; lower means a lot of allocated time is not producing training.'
+    confused: [{ name: 'Card-hours', diff: 'Goodput 是效率比率；卡时是绝对消耗。' }],
+    notes: '目标 ≥ 80%；更低意味着大量已分配时间未产出训练。'
   },
   {
     metric_id: 'cost.budget.burn', display_name: 'Budget Burn', unit: '%',
     level: 'L1', priority: 'P2', layer: 'cost', type: 'gauge', vendors: ALL,
     default_aggregation: 'sum', sources: ['billing'],
-    def: 'Share of an allocated budget consumed over a period.',
-    calc: 'spend_to_date / budget × 100.',
-    sig: 'Keeps tenants/projects inside their financial envelope.',
+    def: '某周期内已消耗的预算占比。',
+    calc: '至今开支 / 预算 × 100。',
+    sig: '让租户/项目保持在财务额度内。',
     related: ['cost.card_hours', 'cost.per_million_tokens'],
     confused: [],
-    notes: 'budget_used.pct > threshold raises a cost-over-budget alert (P2).'
+    notes: 'budget_used.pct > 阈值触发超预算告警（P2）。'
   },
   {
     metric_id: 'sched.queue.depth', display_name: 'Queue Depth', unit: 'jobs',
     level: 'L1', priority: 'P1', layer: 'scheduling', type: 'gauge', vendors: ALL,
     default_aggregation: 'avg', sources: ['scheduler'],
-    def: 'Number of jobs/pods waiting in the scheduling queue.',
-    calc: 'count(pending jobs) per queue.',
-    sig: 'Backlog indicator for capacity and fairness decisions.',
+    def: '在调度队列中等待的作业/Pod 数量。',
+    calc: '各队列 count(待处理作业)。',
+    sig: '用于容量与公平性决策的积压指标。',
     related: ['sched.queue.time', 'sched.fragmentation.pct', 'k8s.pod.pending.seconds'],
-    confused: [{ name: 'Queue time', diff: 'Depth is how many wait; time is how long they wait.' }],
-    notes: 'Persistent depth with idle cards points to fragmentation/quota limits.'
+    confused: [{ name: 'Queue time', diff: '深度是有多少在等；时间是等多久。' }],
+    notes: '队列持续有深度却仍有空闲卡，指向碎片化/配额限制。'
   },
   {
     metric_id: 'sched.queue.time', display_name: 'Queue Time', unit: 'min',
     level: 'L1', priority: 'P1', layer: 'scheduling', type: 'gauge', vendors: ALL,
     default_aggregation: 'p95', sources: ['scheduler'],
-    def: 'Time a job waits in queue before starting.',
-    calc: 'p50/p95 of (start_time − submit_time).',
-    sig: 'Direct measure of platform responsiveness / SLO attainment.',
+    def: '作业在启动前的排队等待时间。',
+    calc: '(开始时间 − 提交时间) 的 p50/p95。',
+    sig: '平台响应性 / SLO 达成的直接度量。',
     related: ['sched.queue.depth', 'k8s.pod.pending.seconds'],
-    confused: [{ name: 'Pod pending time', diff: 'Queue time is scheduler/quota-level; pending time is K8s placement-level.' }],
-    notes: 'P95 > 30 min breaches the example queue SLO.'
+    confused: [{ name: 'Pod pending time', diff: '排队时间是调度器/配额层面；Pending 时间是 K8s 放置层面。' }],
+    notes: 'P95 > 30 分钟即突破示例排队 SLO。'
   },
   {
     metric_id: 'sched.fragmentation.pct', display_name: 'Resource Fragmentation Ratio', unit: '%',
     level: 'L1', priority: 'P1', layer: 'scheduling', type: 'gauge', vendors: ALL,
     default_aggregation: 'avg', sources: ['scheduler'],
-    def: 'Ratio of remaining resources that cannot be scheduled due to model/topology/quota constraints.',
-    calc: 'unschedulable_free_cards / total_free_cards × 100.',
-    sig: 'Explains "cards exist but jobs still queue."',
+    def: '因型号/拓扑/配额约束而无法调度的剩余资源占比。',
+    calc: '不可调度的空闲卡 / 总空闲卡 × 100。',
+    sig: '解释"明明有卡，作业却仍在排队"。',
     related: ['sched.queue.depth', 'k8s.schedule.failures', 'fleet.cards.allocated'],
-    confused: [{ name: 'Idle card count', diff: 'Having idle cards does not mean a large job can be scheduled; fragmentation captures unusable capacity.' }],
-    notes: 'Break down by region/model/topology to target defragmentation.'
+    confused: [{ name: 'Idle card count', diff: '有空闲卡不代表能调度大作业；碎片化刻画的是不可用容量。' }],
+    notes: '按区域/型号/拓扑分解以定向消除碎片。'
   },
   {
     metric_id: 'sched.preemption.events', display_name: 'Preemption', unit: 'events',
     level: 'L1', priority: 'P2', layer: 'scheduling', type: 'increase', vendors: ALL,
     default_aggregation: 'increase', sources: ['scheduler'],
-    def: 'Jobs/pods preempted to free resources for higher-priority work.',
-    calc: 'increase(preemption_counter) over the window.',
-    sig: 'High preemption hurts Goodput and fairness.',
+    def: '为给更高优先级任务腾资源而被抢占的作业/Pod。',
+    calc: 'increase(抢占计数器) 在窗口内的增量。',
+    sig: '高抢占会损害 Goodput 与公平性。',
     related: ['cost.goodput.pct', 'k8s.pod.restarts'],
     confused: [],
-    notes: 'Frequent preemption of the same tenant signals a quota/priority misconfig.'
+    notes: '同一租户频繁被抢占意味着配额/优先级配置有误。'
   },
   {
     metric_id: 'sched.quota.utilization', display_name: 'Quota Utilization', unit: '%',
     level: 'L1', priority: 'P2', layer: 'scheduling', type: 'gauge', vendors: ALL,
     default_aggregation: 'avg', sources: ['scheduler'],
-    def: 'Share of a tenant/queue quota currently in use.',
-    calc: 'used_quota / assigned_quota × 100.',
-    sig: 'Fairness and capacity-planning input across tenants.',
+    def: '租户/队列配额当前使用的比例。',
+    calc: '已用配额 / 分配配额 × 100。',
+    sig: '跨租户的公平性与容量规划输入。',
     related: ['fleet.cards.allocated', 'sched.queue.time'],
     confused: [],
-    notes: 'Quota saturation with a deep queue justifies expanding the tenant allocation.'
+    notes: '配额打满且队列很深，则有理由扩大该租户配额。'
   },
 
   // ── L2 · Expert diagnostic metrics (§7.4) ───────────────────────────────────
@@ -907,67 +908,67 @@ export const METRIC_DICTIONARY = [
     metric_id: 'expert.sm.occupancy.pct', display_name: 'SM / Warp Occupancy', unit: '%',
     level: 'L2', priority: 'P2', layer: 'expert', type: 'gauge', vendors: ['nvidia'],
     default_aggregation: 'avg', sources: ['profiler', 'dcgm_exporter'],
-    def: 'Active warps per SM relative to the architectural maximum.',
-    calc: 'active_warps / max_warps_per_sm × 100.',
-    sig: 'Localizes CUDA-kernel inefficiency for performance tuning.',
+    def: '每个 SM 的活跃 warp 数相对架构最大值的比例。',
+    calc: '活跃 warp / 每 SM 最大 warp × 100。',
+    sig: '用于性能调优时定位 CUDA 内核低效。',
     related: ['accelerator.utilization.compute.pct', 'training.mfu.pct', 'expert.operator.latency_top'],
-    confused: [{ name: 'Compute utilization', diff: 'Occupancy is a kernel-scheduler metric; utilization is coarse busy/idle.' }],
-    notes: 'Not collected globally by default — enabled only for selected jobs.'
+    confused: [{ name: 'Compute utilization', diff: '占用率是内核调度指标；利用率是粗粒度的繁忙/空闲。' }],
+    notes: '默认不全局采集——仅对选定作业开启。'
   },
   {
     metric_id: 'expert.cache.miss', display_name: 'Cache / TLB Miss / IPC', unit: 'ratio',
     level: 'L2', priority: 'P2', layer: 'expert', type: 'gauge', vendors: ['nvidia', 'generic'],
     default_aggregation: 'avg', sources: ['profiler', 'ebpf'],
-    def: 'L1/L2/L3 cache miss rates, TLB misses and instructions-per-cycle.',
-    calc: 'miss_events / access_events; IPC = instructions / cycles.',
-    sig: 'Pinpoints CPU/memory-subsystem bottlenecks.',
+    def: 'L1/L2/L3 缓存未命中率、TLB 未命中与每周期指令数（IPC）。',
+    calc: '未命中事件 / 访问事件；IPC = 指令数 / 周期数。',
+    sig: '定位 CPU/内存子系统瓶颈。',
     related: ['expert.ebpf.syscall', 'system.cpu.utilization.pct'],
     confused: [],
-    notes: 'Sampled within collection windows; not stored in core TSDB.'
+    notes: '在采集窗口内采样；不存入核心 TSDB。'
   },
   {
     metric_id: 'expert.operator.latency_top', display_name: 'Operator Latency Top20 / Memory Top20', unit: 'ms / MB',
     level: 'L2', priority: 'P2', layer: 'expert', type: 'topn', vendors: NV_PPU,
     default_aggregation: 'topn', sources: ['profiler'],
-    def: 'The 20 slowest operators and the 20 largest memory-consuming operators.',
-    calc: 'rank_top_n(operator_duration) and rank_top_n(operator_memory) from profiler traces.',
-    sig: 'Directs model-level optimization to the operators that actually matter.',
+    def: '最慢的 20 个算子与显存占用最大的 20 个算子。',
+    calc: '从 profiler trace 中 rank_top_n(算子时长) 与 rank_top_n(算子显存)。',
+    sig: '把模型级优化引向真正重要的算子。',
     related: ['expert.sm.occupancy.pct', 'training.step.breakdown'],
     confused: [],
-    notes: 'PyTorch Profiler sampled on a schedule; operator names live in the profile store, not core TSDB.'
+    notes: 'PyTorch Profiler 按计划采样；算子名存于 profile 存储，不入核心 TSDB。'
   },
   {
     metric_id: 'expert.nccl.debug', display_name: 'NCCL Debug / Algorithm / Channels', unit: 'info',
     level: 'L2', priority: 'P2', layer: 'expert', type: 'state', vendors: ['nvidia'],
     default_aggregation: 'last', sources: ['nccl'],
-    def: 'NCCL algorithm selection, channel/ring information and debug output.',
-    calc: 'Parsed from NCCL debug logs for a given collective.',
-    sig: 'Explains why collective bandwidth efficiency is low.',
+    def: 'NCCL 算法选择、channel/ring 信息与调试输出。',
+    calc: '针对某次集合操作从 NCCL 调试日志解析。',
+    sig: '解释集合带宽效率为何偏低。',
     related: ['comm.bandwidth.efficiency.pct', 'comm.allreduce.duration.ms'],
     confused: [],
-    notes: 'Enabled only for anomalous jobs to avoid log flooding.'
+    notes: '仅对异常作业开启以避免日志泛滥。'
   },
   {
     metric_id: 'expert.ebpf.syscall', display_name: 'eBPF Syscall / TCP Retrans / Block-IO Latency', unit: 'mixed',
     level: 'L2', priority: 'P2', layer: 'expert', type: 'gauge', vendors: ALL,
     default_aggregation: 'p95', sources: ['ebpf'],
-    def: 'System-level syscall latency, TCP retransmissions and block-IO latency captured via eBPF.',
-    calc: 'eBPF probes sampled in short windows; percentiles per probe.',
-    sig: 'Locates system-level bottlenecks invisible to higher-level metrics.',
+    def: '通过 eBPF 捕获的系统级 syscall 延迟、TCP 重传与块 IO 延迟。',
+    calc: 'eBPF 探针短窗口采样；各探针的百分位。',
+    sig: '定位高层指标看不到的系统级瓶颈。',
     related: ['expert.cache.miss', 'network.bit.errors', 'system.cpu.iowait.pct'],
     confused: [],
-    notes: 'Event-triggered or short-window sampling to bound overhead.'
+    notes: '事件触发或短窗口采样以限制开销。'
   },
   {
     metric_id: 'expert.memory.fragmentation', display_name: 'Memory Fragmentation / Allocator Details', unit: '%',
     level: 'L2', priority: 'P2', layer: 'expert', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'max', sources: ['framework_hook'],
-    def: 'Device-memory fragmentation and allocator pool statistics.',
-    calc: 'fragmented_free_bytes / total_free_bytes × 100, plus allocator pool stats.',
-    sig: 'Diagnoses OOM and memory leaks even when utilization looks fine.',
+    def: '设备显存碎片化与分配器内存池统计。',
+    calc: '碎片化空闲字节 / 总空闲字节 × 100，外加分配器内存池统计。',
+    sig: '即使利用率看起来正常，也能诊断 OOM 与内存泄漏。',
     related: ['accelerator.memory.used.pct', 'system.oom.kill.events'],
-    confused: [{ name: 'Memory utilization', diff: 'Fragmentation can cause OOM well below 100% capacity.' }],
-    notes: 'Requires framework hook support; sampled on demand.'
+    confused: [{ name: 'Memory utilization', diff: '碎片化可能在远未达 100% 容量时就触发 OOM。' }],
+    notes: '需要框架 hook 支持；按需采样。'
   }
 ]
 

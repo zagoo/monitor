@@ -117,31 +117,31 @@ const relatedNames = (ids) => (ids || []).map((id) => METRIC_BY_ID[id]?.display_
         </div>
 
         <div class="flex-1 min-h-0 px-4 py-3 space-y-2.5 overflow-y-auto scroll-thin">
-          <Block label="Definition">{{ m.def }}</Block>
-          <Block label="Calculation">{{ m.calc }}</Block>
-          <Block label="Significance">{{ m.sig }}</Block>
+          <Block label="定义">{{ m.def }}</Block>
+          <Block label="计算逻辑">{{ m.calc }}</Block>
+          <Block label="重要性">{{ m.sig }}</Block>
 
           <div v-if="m.confused && m.confused.length">
-            <span class="micro-label text-stone">Easily Confused With</span>
+            <span class="micro-label text-stone">易混淆指标</span>
             <ul class="mt-1 space-y-1">
               <li v-for="c in m.confused" :key="c.name" class="text-[12px] leading-snug text-steel">
-                <span class="font-semibold text-charcoal">{{ c.name }}:</span> {{ c.diff }}
+                <span class="font-semibold text-charcoal">{{ c.name }}：</span>{{ c.diff }}
               </li>
             </ul>
           </div>
 
           <div v-if="m.related && m.related.length">
-            <span class="micro-label text-stone">Related Metrics</span>
+            <span class="micro-label text-stone">相关指标</span>
             <div class="mt-1 flex flex-wrap gap-1">
               <span v-for="n in relatedNames(m.related)" :key="n" class="nz-chip bg-surface text-slate border-hairline text-[11px]">{{ n }}</span>
             </div>
           </div>
 
-          <Block v-if="m.notes" label="Notes" warn>{{ m.notes }}</Block>
+          <Block v-if="m.notes" label="注意事项" warn>{{ m.notes }}</Block>
 
           <div class="flex items-center gap-3 border-t border-hairline-soft pt-2 text-[11px]">
-            <span class="text-stone">Agg <span class="font-mono text-slate">{{ m.default_aggregation }}</span></span>
-            <span class="text-stone">Source <span class="font-mono text-slate">{{ (m.sources || []).join(', ') }}</span></span>
+            <span class="text-stone">聚合 <span class="font-mono text-slate">{{ m.default_aggregation }}</span></span>
+            <span class="text-stone">来源 <span class="font-mono text-slate">{{ (m.sources || []).join(', ') }}</span></span>
           </div>
         </div>
       </div>
