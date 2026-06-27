@@ -115,6 +115,17 @@ const sevDot = { critical: '#ff5f6d', high: '#ffb648', medium: '#38e1ff', low: '
         icon="Zap" accent="#9cff57" :spark="heroSpark.map(v => v*0.85)" :delta="1.6" delta-good="up" metric-id="accelerator.utilization.tensor.pct" />
     </section>
 
+    <!-- ── Supplementary metrics strip ── -->
+    <section class="cy-panel p-4">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <SubStat label="平均显存利用率" metric-id="fleet.util.memory.avg" :value="kpis.avg_mem + '%'" color="#8b7bff" />
+        <SubStat label="温度/功率受限卡数" metric-id="fleet.cards.thermal_power_limited" :value="kpis.thermal" :color="kpis.thermal ? '#ffb648' : '#5e6b7e'" />
+        <SubStat label="集群总吞吐" metric-id="training.throughput.cluster" :value="fmt(kpis.throughput) + ' tok/s'" color="#38e1ff" />
+        <SubStat label="空闲卡时" metric-id="cost.idle_card_hours" :value="fmt(kpis.idle_card_hours)" color="#ff8a3d" />
+        <SubStat label="P0 告警" metric-id="alerts.p0.count" :value="kpis.p0" :color="kpis.p0 ? '#ff5f6d' : '#37e0a0'" />
+      </div>
+    </section>
+
     <!-- ── Matrix + TopN row ── -->
     <section class="grid grid-cols-1 xl:grid-cols-12 gap-4">
       <!-- Region × Model matrix -->
@@ -243,6 +254,7 @@ const sevDot = { critical: '#ff5f6d', high: '#ffb648', medium: '#38e1ff', low: '
 
 <script>
 import { h } from 'vue'
+import MetricTooltipC from '../common/MetricTooltip.vue'
 // helpers shared in template scope
 function utilColor(v) {
   if (v >= 70) return '#37e0a0'
@@ -266,5 +278,14 @@ const MiniKpi = (props) =>
     h('span', { class: 'mt-1 text-[20px] font-semibold cy-readout', style: { color: props.tone } }, String(props.value))
   ])
 MiniKpi.props = ['label', 'value', 'tone']
-export default { components: { MiniKpi }, methods: { utilColor, dotStyle } }
+const SubStat = (props) =>
+  h('div', { class: 'rounded-lg border border-cyber-line bg-cyber-panel-2 p-3' }, [
+    h('div', { class: 'flex items-center gap-1' }, [
+      h('span', { class: 'micro-label text-cyber-text-3' }, props.label),
+      props.metricId ? h(MetricTooltipC, { metricId: props.metricId, iconOnly: true, dark: true }) : null
+    ]),
+    h('div', { class: 'mt-1.5 cy-readout text-[19px] font-semibold', style: { color: props.color } }, String(props.value))
+  ])
+SubStat.props = ['label', 'value', 'color', 'metricId']
+export default { components: { MiniKpi, SubStat }, methods: { utilColor, dotStyle } }
 </script>

@@ -8,8 +8,29 @@ import Sparkline from '../common/Sparkline.vue'
 import MetricTooltip from '../common/MetricTooltip.vue'
 
 const m = useMonitor()
-const { filteredAccelerators } = m
+const { filteredAccelerators, filteredNodes } = m
 
+const resourceView = ref('cards') // cards | nodes
+const NODE_COLS = [
+  { label: 'CPU', metric: 'system.cpu.utilization.pct' },
+  { label: 'IOWait', metric: 'system.cpu.iowait.pct' },
+  { label: '内存', metric: 'system.memory.used.pct' },
+  { label: 'NUMA', metric: 'system.numa.imbalance' },
+  { label: 'OOM', metric: 'system.oom.kill.events' },
+  { label: 'NVLink', metric: 'network.nvlink.bandwidth' },
+  { label: 'RoCE/IB', metric: 'network.fabric.bandwidth' },
+  { label: 'PFC/ECN', metric: 'network.fabric.pfc_ecn' },
+  { label: '端口宕机', metric: 'network.port.down.events' },
+  { label: '误码', metric: 'network.bit.errors' },
+  { label: 'P99', metric: 'network.latency.p99.us' },
+  { label: 'Pod 重启', metric: 'k8s.pod.restarts' },
+  { label: 'Req/Limit', metric: 'k8s.resource.request_limit' },
+  { label: '等待调度', metric: 'k8s.pod.pending.seconds' },
+  { label: '调度失败', metric: 'k8s.schedule.failures' },
+  { label: '退出码', metric: 'k8s.pod.exit_code' },
+  { label: '链路', metric: 'network.intra.link_status' }
+]
+function pctColor(v) { return v >= 85 ? '#ff5f6d' : v >= 65 ? '#ffb648' : '#9aa7ba' }
 const sortKey = ref('util_pct')
 const sortDir = ref('asc')
 const page = ref(1)
@@ -58,6 +79,7 @@ const COLS = [
   { k: 'job_name', label: '当前作业' },
   { k: 'util_pct', label: '计算', metric: 'accelerator.utilization.compute.pct' },
   { k: 'mem_pct', label: '显存', metric: 'accelerator.memory.used.pct' },
+  { k: 'mem_bw_pct', label: '显存带宽', metric: 'accelerator.memory.bandwidth.pct' },
   { k: 'temp_c', label: '温度', metric: 'accelerator.temperature.celsius' },
   { k: 'power_w', label: '功耗', metric: 'accelerator.power.watt' },
   { k: 'errors', label: '错误' },
@@ -86,10 +108,16 @@ const COLS = [
       <SumCard :icon="Zap" label="平均功耗" :value="summary.avgPower + 'W'" tone="#9cff57" />
     </section>
 
+    <!-- view tabs: accelerator grid / node-system grid -->
+    <div class="flex items-center gap-1.5">
+      <button class="nz-pill" :class="resourceView === 'cards' ? 'nz-pill-active' : ''" @click="resourceView = 'cards'">加速卡</button>
+      <button class="nz-pill" :class="resourceView === 'nodes' ? 'nz-pill-active' : ''" @click="resourceView = 'nodes'">节点 / 系统</button>
+    </div>
+
     <!-- resource table (dark cyber data grid) -->
-    <section class="cy-panel overflow-hidden">
+    <section v-if="resourceView === 'cards'" class="cy-panel overflow-hidden">
       <div class="overflow-x-auto scroll-thin on-dark">
-        <table class="w-full min-w-[980px]">
+        <table class="w-full min-w-[1060px]">
           <thead>
             <tr class="border-b border-cyber-line">
               <th v-for="c in COLS" :key="c.k"
@@ -131,6 +159,14 @@ const COLS = [
                   </div>
                 </div>
               </td>
+              <td class="px-3 py-2.5">
+                <div class="flex items-center gap-2">
+                  <span class="cy-readout text-[13px] text-cyber-text-2 w-9">{{ a.mem_bw_pct }}%</span>
+                  <div class="h-1.5 w-12 rounded-full bg-cyber-line overflow-hidden">
+                    <div class="h-full rounded-full bg-cyber-cyan" :style="{ width: a.mem_bw_pct + '%' }" />
+                  </div>
+                </div>
+              </td>
               <td class="px-3 py-2.5 cy-readout text-[13px]" :style="{ color: tempColor(a.temp_c) }">{{ a.temp_c }}°</td>
               <td class="px-3 py-2.5 cy-readout text-[13px] text-cyber-text-2">{{ a.power_w }}<span class="text-cyber-text-3 text-[11px]">W</span></td>
               <td class="px-3 py-2.5">
@@ -155,6 +191,54 @@ const COLS = [
           <button class="px-3 h-8 rounded-md border border-cyber-line text-[12.5px] text-cyber-text-2 hover:bg-cyber-panel-2 disabled:opacity-40 transition-colors"
             :disabled="page === pageCount" @click="page++">下一页</button>
         </div>
+      </div>
+    </section>
+
+    <!-- node / system + network table -->
+    <section v-else class="cy-panel overflow-hidden">
+      <div class="px-4 py-2.5 border-b border-cyber-line flex items-center justify-between">
+        <span class="text-[13px] font-semibold text-cyber-text">{{ filteredNodes.length }} 个节点 · 系统 / 网络 / Kubernetes</span>
+        <span class="micro-label text-cyber-text-3">Region → Cluster → Node</span>
+      </div>
+      <div class="overflow-x-auto scroll-thin on-dark">
+        <table class="w-full min-w-[1180px]">
+          <thead>
+            <tr class="border-b border-cyber-line text-[11px] uppercase tracking-wide text-cyber-text-3">
+              <th class="text-left px-3 py-2.5">状态</th>
+              <th class="text-left px-3 py-2.5">节点</th>
+              <th class="text-left px-3 py-2.5">区域</th>
+              <th class="text-right px-3 py-2.5">卡数</th>
+              <th v-for="c in NODE_COLS" :key="c.metric" class="text-right px-3 py-2.5 whitespace-nowrap">
+                <span class="inline-flex items-center gap-1 justify-end"><MetricTooltip :metric-id="c.metric" :label="c.label" dark /></span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="n in filteredNodes" :key="n.node_id" class="border-b border-cyber-line-soft hover:bg-cyber-panel-2 transition-colors">
+              <td class="px-3 py-2.5"><StatusBadge :status="n.health" dark /></td>
+              <td class="px-3 py-2.5 font-mono text-[12.5px] text-cyber-text whitespace-nowrap">{{ n.node_id }}</td>
+              <td class="px-3 py-2.5 text-[12.5px] text-cyber-text-2 whitespace-nowrap">{{ n.region_name }}</td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px] text-cyber-text-2">{{ n.card_count }}</td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px]" :style="{ color: pctColor(n.cpu_pct) }">{{ n.cpu_pct }}%</td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px]" :style="{ color: n.iowait_pct > 12 ? '#ffb648' : '#9aa7ba' }">{{ n.iowait_pct }}%</td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px]" :style="{ color: pctColor(n.mem_pct) }">{{ n.mem_pct }}%</td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px] text-cyber-text-2">{{ n.numa_imbalance }}</td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px]" :class="n.oom_kills ? 'text-cyber-red' : 'text-cyber-text-3'">{{ n.oom_kills }}</td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px] text-cyber-text-2">{{ n.nvlink_bw_gbs }}<span class="text-cyber-text-3 text-[10px]">GB/s</span></td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px] text-cyber-text-2">{{ n.fabric_bw_gbps }}<span class="text-cyber-text-3 text-[10px]">Gb/s</span></td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px]" :class="n.pfc_ecn > 100 ? 'text-cyber-amber' : 'text-cyber-text-2'">{{ n.pfc_ecn }}</td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px]" :class="n.port_down ? 'text-cyber-red' : 'text-cyber-text-3'">{{ n.port_down }}</td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px]" :class="n.bit_errors > 30 ? 'text-cyber-amber' : 'text-cyber-text-2'">{{ n.bit_errors }}</td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px] text-cyber-text-2">{{ n.net_p99_us }}<span class="text-cyber-text-3 text-[10px]">µs</span></td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px]" :class="n.pod_restarts ? 'text-cyber-amber' : 'text-cyber-text-3'">{{ n.pod_restarts }}</td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px] text-cyber-text-2">{{ n.req_limit_ratio }}</td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px]" :class="n.pending_p95_s > 120 ? 'text-cyber-amber' : 'text-cyber-text-2'">{{ n.pending_p95_s }}<span class="text-cyber-text-3 text-[10px]">s</span></td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px]" :class="n.schedule_failures ? 'text-cyber-amber' : 'text-cyber-text-3'">{{ n.schedule_failures }}</td>
+              <td class="px-3 py-2.5 text-right cy-readout text-[13px]" :class="n.exit_code && n.exit_code !== 0 ? 'text-cyber-red' : 'text-cyber-text-3'">{{ n.exit_code }}</td>
+              <td class="px-3 py-2.5 text-right text-[12px] font-medium" :class="n.link_status === 'up' ? 'text-cyber-green' : n.link_status === 'degraded' ? 'text-cyber-amber' : 'text-cyber-red'">{{ ({ up: '正常', degraded: '降级', down: '中断' })[n.link_status] }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
   </div>

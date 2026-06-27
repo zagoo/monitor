@@ -4,7 +4,7 @@
 
 import { reactive, computed, readonly } from 'vue'
 import { REGIONS, ACCELERATOR_TYPES, TENANTS, TIME_RANGES } from '../data/catalog.js'
-import { buildFleet, tickFleet, clamp } from '../data/generate.js'
+import { buildFleet, tickFleet, tickNodes, clamp } from '../data/generate.js'
 
 const fleet = buildFleet()
 
@@ -24,6 +24,7 @@ const state = reactive({
   preset: null, // active metric-value preset id
   jobs: fleet.jobs,
   accelerators: fleet.accelerators,
+  nodes: fleet.nodes,
   alerts: fleet.alerts,
   drawer: null // { type: 'accelerator'|'job', id }
 })
@@ -49,6 +50,15 @@ const filteredJobs = computed(() => {
   return state.jobs.filter((j) => {
     if (f.region_ids.length && !f.region_ids.includes(j.region_id)) return false
     if (f.tenant_ids.length && !f.tenant_ids.includes(j.tenant_id)) return false
+    return true
+  })
+})
+
+const filteredNodes = computed(() => {
+  const f = state.filters
+  return state.nodes.filter((n) => {
+    if (f.region_ids.length && !f.region_ids.includes(n.region_id)) return false
+    if (f.health_status.length && !f.health_status.includes(n.health)) return false
     return true
   })
 })
@@ -186,6 +196,8 @@ const timeline = computed(() => {
 // ── Derived: cost & capacity ──
 const costSummary = computed(() => {
   const accs = filteredAccelerators.value
+  const total = accs.length
+  const allocated = accs.filter((a) => a.allocated).length
   const cardHours = accs.length * 6
   const allocatedHours = accs.filter((a) => a.allocated).length * 6
   const activeHours = accs.filter((a) => a.allocated && a.util_pct > 25).length * 6
@@ -204,8 +216,31 @@ const costSummary = computed(() => {
     queue_p95: 27,
     queue_depth: 18,
     fragmentation_pct: 11.4,
-    watermark_pct: 83
+    watermark_pct: 83,
+    budget_used_pct: 68,
+    preemptions: 14,
+    quota_util_pct: +((allocated / (total || 1)) * 100).toFixed(0)
   }
+})
+
+// per-tenant cost rollup incl. quota utilization + budget burn
+const tenantCost = computed(() => {
+  const jobs = filteredJobs.value
+  return TENANTS.map((t) => {
+    const tj = jobs.filter((j) => j.tenant_id === t.tenant_id)
+    const hours = tj.reduce((s, j) => s + j.card_hours, 0)
+    const cards = filteredAccelerators.value.filter((a) => a.tenant_id === t.tenant_id).length
+    return {
+      tenant_id: t.tenant_id,
+      name: t.name,
+      hours,
+      cost: Math.round(hours * 2.2),
+      cards,
+      quota_cards: t.quota_cards,
+      quota_pct: +Math.min(100, (cards / t.quota_cards) * 100).toFixed(0),
+      budget_pct: t.budget_pct
+    }
+  }).sort((a, b) => b.hours - a.hours)
 })
 
 const counts = computed(() => ({
@@ -237,6 +272,7 @@ function refresh() {
   state.refreshing = true
   setTimeout(() => {
     tickFleet(state.accelerators)
+    tickNodes(state.nodes)
     state.lastRefresh = Date.now()
     state.refreshing = false
     // randomly surface partial/stale state on shenzhen (degraded region)
@@ -247,7 +283,7 @@ function refresh() {
 let timer = null
 function startLive() {
   stopLive()
-  timer = setInterval(() => { if (state.live) { tickFleet(state.accelerators); state.lastRefresh = Date.now() } }, 4000)
+  timer = setInterval(() => { if (state.live) { tickFleet(state.accelerators); tickNodes(state.nodes); state.lastRefresh = Date.now() } }, 4000)
 }
 function stopLive() { if (timer) clearInterval(timer) }
 
@@ -256,8 +292,8 @@ export function useMonitor() {
     state: readonly(state),
     rawState: state,
     REGIONS, ACCELERATOR_TYPES, TENANTS, TIME_RANGES,
-    filteredAccelerators, filteredJobs,
-    kpis, regionModelMatrix, tenantModelMatrix, topN, timeline, costSummary, counts,
+    filteredAccelerators, filteredJobs, filteredNodes,
+    kpis, regionModelMatrix, tenantModelMatrix, topN, timeline, costSummary, tenantCost, counts,
     setTab, setTimeRange, toggleLive, toggleFilter, setPreset, resetFilters,
     openDrawer, closeDrawer, refresh, startLive, stopLive,
     clamp

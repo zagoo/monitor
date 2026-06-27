@@ -1,26 +1,17 @@
 <script setup>
 import { computed } from 'vue'
-import { Clock, TrendingDown, Gauge, ListOrdered, Boxes, Activity } from 'lucide-vue-next'
+import { Clock, TrendingDown, Gauge, ListOrdered, Boxes, Activity, Wallet, Shuffle } from 'lucide-vue-next'
 import { useMonitor } from '../../store/useMonitor.js'
-import { TENANTS } from '../../data/catalog.js'
 import LineChart from '../common/LineChart.vue'
 import { makeSeries } from '../../data/generate.js'
 
 const m = useMonitor()
-const { costSummary, filteredJobs } = m
+const { costSummary, tenantCost } = m
 
 const fmt = (n) => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : `${Math.round(n)}`
 
 const byTenant = computed(() => {
-  const map = {}
-  for (const t of TENANTS) map[t.tenant_id] = { name: t.name, hours: 0, cost: 0, waste: 0 }
-  for (const j of filteredJobs.value) {
-    const b = map[j.tenant_id]; if (!b) continue
-    b.hours += j.card_hours
-    b.cost += j.card_hours * 2.2
-    b.waste += j.mfu_pct < 30 ? j.card_hours * 0.4 : j.card_hours * 0.08
-  }
-  const arr = Object.values(map).sort((a, b) => b.hours - a.hours)
+  const arr = tenantCost.value
   const max = Math.max(...arr.map((x) => x.hours), 1)
   return arr.map((x) => ({ ...x, pct: (x.hours / max) * 100 }))
 })
@@ -50,13 +41,23 @@ const goodColor = computed(() => costSummary.value.goodput >= 80 ? '#37e0a0' : c
         :rows="[['不可调度', '剩余'], ['按拓扑', '灰区']]" />
       <Card :icon="Activity" title="容量水位" :value="costSummary.watermark_pct + '%'" accent="#9cff57" metric-id="fleet.cards.allocated"
         :rows="[['7 天峰值', '91%'], ['30 天预测', '+6%']]" />
+      <Card :icon="Wallet" title="预算消耗率" :value="costSummary.budget_used_pct + '%'" accent="#ff64c8" metric-id="cost.budget.burn"
+        :rows="[['本月', costSummary.budget_used_pct + '%'], ['告警阈值', '≥ 90%']]" />
+      <Card :icon="Shuffle" title="抢占次数" :value="costSummary.preemptions" accent="#ffb648" metric-id="sched.preemption.events"
+        :rows="[['近 24h', costSummary.preemptions], ['影响', 'Goodput']]" />
     </section>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <!-- cost by tenant -->
       <section class="cy-panel p-5">
-        <h3 class="text-[15px] font-semibold text-cyber-text mb-4">各租户卡时</h3>
-        <div class="space-y-3">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-[15px] font-semibold text-cyber-text">各租户卡时</h3>
+          <span class="flex items-center gap-3 text-[11px] text-cyber-text-3">
+            <span class="flex items-center gap-1">配额使用率 <MetricTooltip metric-id="sched.quota.utilization" icon-only dark /></span>
+            <span class="flex items-center gap-1">预算 <MetricTooltip metric-id="cost.budget.burn" icon-only dark /></span>
+          </span>
+        </div>
+        <div class="space-y-3.5">
           <div v-for="t in byTenant" :key="t.name">
             <div class="flex items-center justify-between text-[12.5px] mb-1">
               <span class="text-cyber-text">{{ t.name }}</span>
@@ -64,6 +65,10 @@ const goodColor = computed(() => costSummary.value.goodput >= 80 ? '#37e0a0' : c
             </div>
             <div class="h-2.5 rounded-full bg-cyber-line overflow-hidden relative">
               <div class="h-full rounded-full bg-gradient-to-r from-cyber-cyan to-cyber-violet" :style="{ width: t.pct + '%' }" />
+            </div>
+            <div class="flex items-center gap-3 mt-1 text-[11px] cy-readout">
+              <span class="text-cyber-text-3">配额 <span :style="{ color: t.quota_pct >= 90 ? '#ff5f6d' : '#9aa7ba' }">{{ t.quota_pct }}%</span> ({{ t.cards }}/{{ t.quota_cards }})</span>
+              <span class="text-cyber-text-3">预算 <span :style="{ color: t.budget_pct >= 80 ? '#ffb648' : '#9aa7ba' }">{{ t.budget_pct }}%</span></span>
             </div>
           </div>
         </div>
@@ -101,5 +106,5 @@ const Card = (props) =>
     )
   ])
 Card.props = ['icon', 'title', 'value', 'accent', 'rows', 'metricId']
-export default { components: { Card } }
+export default { components: { Card, MetricTooltip } }
 </script>

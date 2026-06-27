@@ -49,7 +49,10 @@ const ID = computed(() => [
   ['区域 · 节点', `${a.value.region_name} · ${a.value.node_id}`],
   ['设备序号', a.value.device_index],
   ['显存', `${a.value.memory_total_gb} GB`],
-  ['功率上限', `${a.value.power_limit_w} W`]
+  ['功率上限', `${a.value.power_limit_w} W`],
+  ['散热状态', { ok: '正常', degraded: '降级', fault: '故障' }[a.value.cooling_state] || a.value.cooling_state],
+  ['NVLink/PCIe 错误', a.value.link_errors],
+  ...(a.value.vendor === 'aliyun_ppu' ? [['PPU 原生错误码', a.value.ppu_err]] : [])
 ])
 </script>
 
@@ -95,6 +98,26 @@ const ID = computed(() => [
           张量/矩阵单元利用率 <MetricTooltip metric-id="accelerator.utilization.tensor.pct" icon-only dark />
         </div>
         <div class="cy-readout text-[16px] font-semibold mt-1" style="color:#8b7bff">{{ a.tensor_pct }}%</div>
+      </div>
+    </div>
+
+    <!-- second efficiency row: bandwidth · power-limit · idle · TFLOPS -->
+    <div class="grid grid-cols-4 gap-2">
+      <div class="rounded-lg border border-cyber-line bg-cyber-panel-2 p-2.5 text-center">
+        <div class="flex items-center justify-center gap-1 text-[10px] text-cyber-text-3">显存带宽 <MetricTooltip metric-id="accelerator.memory.bandwidth.pct" icon-only dark /></div>
+        <div class="cy-readout text-[15px] font-semibold mt-1" style="color:#38e1ff">{{ a.mem_bw_pct }}%</div>
+      </div>
+      <div class="rounded-lg border border-cyber-line bg-cyber-panel-2 p-2.5 text-center">
+        <div class="flex items-center justify-center gap-1 text-[10px] text-cyber-text-3">功率上限命中 <MetricTooltip metric-id="accelerator.power.limit_hit.pct" icon-only dark /></div>
+        <div class="cy-readout text-[15px] font-semibold mt-1" :style="{ color: a.power_limit_hit_pct > 5 ? '#ffb648' : '#9aa7ba' }">{{ a.power_limit_hit_pct }}%</div>
+      </div>
+      <div class="rounded-lg border border-cyber-line bg-cyber-panel-2 p-2.5 text-center">
+        <div class="flex items-center justify-center gap-1 text-[10px] text-cyber-text-3">空闲占比 <MetricTooltip metric-id="accelerator.idle.pct" icon-only dark /></div>
+        <div class="cy-readout text-[15px] font-semibold mt-1" style="color:#ff8a3d">{{ a.idle_pct }}%</div>
+      </div>
+      <div class="rounded-lg border border-cyber-line bg-cyber-panel-2 p-2.5 text-center">
+        <div class="flex items-center justify-center gap-1 text-[10px] text-cyber-text-3">实测 TFLOPS <MetricTooltip metric-id="training.achieved.tflops" icon-only dark /></div>
+        <div class="cy-readout text-[15px] font-semibold mt-1" style="color:#37e0a0">{{ a.achieved_tflops }}</div>
       </div>
     </div>
 
