@@ -6,9 +6,9 @@ import MetricTooltip from '../common/MetricTooltip.vue'
 
 const tab = ref('dictionary')
 const TABS = [
-  { id: 'dictionary', label: 'Metric Dictionary', icon: BookOpen },
-  { id: 'profiles', label: 'Collection Profiles', icon: Database },
-  { id: 'adapters', label: 'Adapters', icon: Plug }
+  { id: 'dictionary', label: '指标字典', icon: BookOpen },
+  { id: 'profiles', label: '采集档位', icon: Database },
+  { id: 'adapters', label: '适配器', icon: Plug }
 ]
 const enabled = ref(Object.fromEntries(METRIC_DICTIONARY.map((m) => [m.metric_id, true])))
 
@@ -34,15 +34,15 @@ const totals = computed(() => ({
 }))
 
 const PROFILES = [
-  { name: 'Basic', target: 'On-call & capacity', content: 'P0 core: health, utilization, memory, temperature, power, errors, K8s state', policy: 'Enabled globally', on: true },
-  { name: 'Standard', target: 'Daily troubleshooting', content: 'P1: network, communication, step time, throughput, data loading, checkpoint, cost', policy: 'Default for training clusters', on: true },
-  { name: 'Expert', target: 'Performance tuning', content: 'P2: profiler, operators, SM/Warp, eBPF, NCCL debug', policy: 'Per job / time window', on: false }
+  { name: 'Basic 基础', target: '值班与容量', content: 'P0 核心：健康、利用率、显存、温度、功率、错误、K8s 状态', policy: '全局启用', on: true },
+  { name: 'Standard 标准', target: '日常排障', content: 'P1：网络、通信、step 耗时、吞吐、数据加载、checkpoint、成本', policy: '训练集群默认启用', on: true },
+  { name: 'Expert 专家', target: '性能调优', content: 'P2：profiler、算子、SM/Warp、eBPF、NCCL 调试', policy: '按作业 / 时间窗开启', on: false }
 ]
 const ADAPTERS = [
   { vendor: 'NVIDIA', via: 'DCGM Exporter + NVML', models: 'H200 · RTX PRO 5000', status: 'healthy' },
-  { vendor: 'Alibaba PPU', via: 'PPU SDK Exporter + PAI/ACS', models: 'Zhenwu 810E · M890', status: 'healthy' },
-  { vendor: 'Kubernetes', via: 'kube-state-metrics + kubelet', models: 'all', status: 'healthy' },
-  { vendor: 'Generic', via: 'OpenTelemetry adapter', models: 'custom GPU/NPU/ASIC', status: 'gray-release' }
+  { vendor: 'Alibaba PPU', via: 'PPU SDK Exporter + PAI/ACS', models: '真武 810E · M890', status: 'healthy' },
+  { vendor: 'Kubernetes', via: 'kube-state-metrics + kubelet', models: '全部', status: 'healthy' },
+  { vendor: 'Generic 通用', via: 'OpenTelemetry adapter', models: '自定义 GPU/NPU/ASIC', status: 'gray-release' }
 ]
 const prioTint = {
   P0: 'bg-[#fde0e0] text-danger', P1: 'bg-tint-peach text-warning',
@@ -54,8 +54,8 @@ const levelTint = { L0: 'bg-navy text-white', L1: 'bg-tint-lavender text-primary
 <template>
   <div class="space-y-4">
     <header>
-      <h2 class="text-[28px] font-semibold text-charcoal tracking-tight">Metrics & Configuration</h2>
-      <p class="text-[14px] text-steel mt-0.5">Metric dictionary, collection profiles, thresholds and adapter health.</p>
+      <h2 class="text-[28px] font-semibold text-charcoal tracking-tight">指标与配置</h2>
+      <p class="text-[14px] text-steel mt-0.5">指标字典、采集档位、阈值与适配器健康。</p>
     </header>
 
     <div class="flex items-center gap-2">
@@ -69,7 +69,7 @@ const levelTint = { L0: 'bg-navy text-white', L1: 'bg-tint-lavender text-primary
       <!-- coverage banner -->
       <div class="nz-card p-4 flex items-center gap-4 flex-wrap">
         <CheckCircle2 :size="20" class="text-success" />
-        <span class="text-[14px] text-charcoal font-medium">{{ totals.all }} metrics documented — full PRD coverage (L0 / L1 / L2 + §8 confused-metrics).</span>
+        <span class="text-[14px] text-charcoal font-medium">已收录 {{ totals.all }} 项指标 —— 完整覆盖 PRD（L0 / L1 / L2 + §8 易混淆指标）。</span>
         <div class="ml-auto flex items-center gap-2">
           <span class="nz-chip border-transparent" :class="levelTint.L0">L0 · {{ totals.L0 }}</span>
           <span class="nz-chip border-transparent" :class="levelTint.L1">L1 · {{ totals.L1 }}</span>
@@ -86,7 +86,7 @@ const levelTint = { L0: 'bg-navy text-white', L1: 'bg-tint-lavender text-primary
             </h3>
             <p class="text-[12.5px] text-steel mt-0.5">{{ grp.meta.desc }}</p>
           </div>
-          <span class="cy-readout text-[13px] text-steel">{{ grp.count }} metrics</span>
+          <span class="cy-readout text-[13px] text-steel">{{ grp.count }} 项</span>
         </div>
 
         <div v-for="lyr in grp.layers" :key="lyr.layer" class="border-b border-hairline-soft last:border-0">
@@ -98,6 +98,7 @@ const levelTint = { L0: 'bg-navy text-white', L1: 'bg-tint-lavender text-primary
               <tr v-for="mm in lyr.items" :key="mm.metric_id" class="hover:bg-surface-soft transition-colors">
                 <td class="pl-5 pr-3 py-2.5 w-1/2">
                   <div class="text-[14px] font-medium text-charcoal"><MetricTooltip :metric-id="mm.metric_id" /></div>
+                  <div class="text-[11.5px] text-steel">{{ mm.en }}</div>
                   <div class="text-[11px] font-mono text-stone">{{ mm.metric_id }}</div>
                 </td>
                 <td class="px-3 py-2.5"><span class="nz-chip border-transparent" :class="prioTint[mm.priority]">{{ mm.priority }}</span></td>
@@ -122,7 +123,7 @@ const levelTint = { L0: 'bg-navy text-white', L1: 'bg-tint-lavender text-primary
       <div v-for="p in PROFILES" :key="p.name" class="nz-card p-5">
         <div class="flex items-center justify-between">
           <h3 class="text-[16px] font-semibold text-charcoal">{{ p.name }}</h3>
-          <span class="nz-chip border-transparent" :class="p.on ? 'bg-tint-mint text-success' : 'bg-tint-gray text-steel'">{{ p.on ? 'On' : 'Per job' }}</span>
+          <span class="nz-chip border-transparent" :class="p.on ? 'bg-tint-mint text-success' : 'bg-tint-gray text-steel'">{{ p.on ? '已启用' : '按作业' }}</span>
         </div>
         <p class="text-[12.5px] text-steel mt-1">{{ p.target }}</p>
         <p class="text-[13px] text-slate mt-3 leading-snug">{{ p.content }}</p>
@@ -135,8 +136,8 @@ const levelTint = { L0: 'bg-navy text-white', L1: 'bg-tint-lavender text-primary
       <table class="w-full">
         <thead>
           <tr class="border-b border-hairline text-[11px] uppercase tracking-wide text-stone">
-            <th class="text-left px-4 py-3">Vendor</th><th class="text-left px-4 py-3">Collected via</th>
-            <th class="text-left px-4 py-3">Models</th><th class="text-right px-4 py-3">Status</th>
+            <th class="text-left px-4 py-3">厂商</th><th class="text-left px-4 py-3">采集方式</th>
+            <th class="text-left px-4 py-3">型号</th><th class="text-right px-4 py-3">状态</th>
           </tr>
         </thead>
         <tbody>

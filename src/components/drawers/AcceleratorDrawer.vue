@@ -33,22 +33,22 @@ const thermalCharts = computed(() => {
 
 const events = computed(() => {
   const e = []
-  if (a.value.offline) e.push({ t: 3, c: '#ff5f6d', m: 'Device went offline' })
-  if (a.value.xid_errors) e.push({ t: 12, c: '#ff5f6d', m: `Xid error ×${a.value.xid_errors}` })
-  if (a.value.thermal_throttle) e.push({ t: 21, c: '#ffb648', m: `Thermal throttle @ ${a.value.temp_c}°C` })
-  e.push({ t: 44, c: '#38e1ff', m: 'Pod scheduled' })
-  e.push({ t: 92, c: '#9aa7ba', m: 'Checkpoint saved' })
+  if (a.value.offline) e.push({ t: 3, c: '#ff5f6d', m: '设备离线' })
+  if (a.value.xid_errors) e.push({ t: 12, c: '#ff5f6d', m: `Xid 错误 ×${a.value.xid_errors}` })
+  if (a.value.thermal_throttle) e.push({ t: 21, c: '#ffb648', m: `热降频 @ ${a.value.temp_c}°C` })
+  e.push({ t: 44, c: '#38e1ff', m: 'Pod 已调度' })
+  e.push({ t: 92, c: '#9aa7ba', m: 'Checkpoint 已保存' })
   return e
 })
 
 const ID = computed(() => [
-  ['Accelerator ID', a.value.accelerator_id],
+  ['加速卡 ID', a.value.accelerator_id],
   ['UUID', a.value.uuid],
-  ['Vendor · Model', `${a.value.vendor === 'nvidia' ? 'NVIDIA' : 'Alibaba PPU'} · ${a.value.model_label}`],
-  ['Region · Node', `${a.value.region_name} · ${a.value.node_id}`],
-  ['Device Index', a.value.device_index],
-  ['Memory', `${a.value.memory_total_gb} GB`],
-  ['Power Limit', `${a.value.power_limit_w} W`]
+  ['厂商 · 型号', `${a.value.vendor === 'nvidia' ? 'NVIDIA' : 'Alibaba PPU'} · ${a.value.model_label}`],
+  ['区域 · 节点', `${a.value.region_name} · ${a.value.node_id}`],
+  ['设备序号', a.value.device_index],
+  ['显存', `${a.value.memory_total_gb} GB`],
+  ['功率上限', `${a.value.power_limit_w} W`]
 ])
 </script>
 
@@ -62,32 +62,32 @@ const ID = computed(() => [
     <!-- status summary -->
     <div class="flex items-center gap-2 flex-wrap">
       <StatusBadge :status="a.health_status" dark />
-      <span class="text-[12px] text-cyber-text-2">Source:</span>
-      <span class="text-[12px] font-medium capitalize" :class="a.source_status==='healthy' ? 'text-cyber-green' : 'text-cyber-amber'">{{ a.source_status }}</span>
+      <span class="text-[12px] text-cyber-text-2">采集：</span>
+      <span class="text-[12px] font-medium" :class="a.source_status==='healthy' ? 'text-cyber-green' : 'text-cyber-amber'">{{ ({ healthy: '正常', stale: '过期', missing: '缺失' })[a.source_status] || a.source_status }}</span>
       <span v-if="a.job_name" class="ml-auto text-[12px] font-mono text-cyber-cyan cursor-pointer hover:underline" @click="m.openDrawer('job', a.job_id)">{{ a.job_name }} →</span>
     </div>
 
     <!-- live readouts -->
     <div class="grid grid-cols-4 gap-2">
-      <Readout :icon="Cpu" label="Compute" :value="a.util_pct + '%'" color="#38e1ff" />
-      <Readout :icon="MemoryStick" label="Memory" :value="a.mem_pct + '%'" color="#8b7bff" />
-      <Readout :icon="Thermometer" label="Temp" :value="a.temp_c + '°'" color="#ffb648" />
-      <Readout :icon="Zap" label="Power" :value="a.power_w + 'W'" color="#9cff57" />
+      <Readout :icon="Cpu" label="计算" :value="a.util_pct + '%'" color="#38e1ff" />
+      <Readout :icon="MemoryStick" label="显存" :value="a.mem_pct + '%'" color="#8b7bff" />
+      <Readout :icon="Thermometer" label="温度" :value="a.temp_c + '°'" color="#ffb648" />
+      <Readout :icon="Zap" label="功耗" :value="a.power_w + 'W'" color="#9cff57" />
     </div>
 
     <!-- core curves -->
     <div class="cy-panel p-4">
-      <h4 class="text-[13px] font-semibold text-cyber-text mb-2">Compute & Memory · last 4h</h4>
+      <h4 class="text-[13px] font-semibold text-cyber-text mb-2">计算与显存 · 近 4 小时</h4>
       <LineChart :series="charts" unit="%" :height="170" :y-max="100" />
     </div>
     <div class="cy-panel p-4">
-      <h4 class="text-[13px] font-semibold text-cyber-text mb-2">Thermal & Power</h4>
+      <h4 class="text-[13px] font-semibold text-cyber-text mb-2">温度与功耗</h4>
       <LineChart :series="thermalCharts" :height="150" :y-min="0" />
     </div>
 
     <!-- identity -->
     <div class="cy-panel p-4">
-      <h4 class="text-[13px] font-semibold text-cyber-text mb-3">Identity</h4>
+      <h4 class="text-[13px] font-semibold text-cyber-text mb-3">标识信息</h4>
       <dl class="space-y-1.5">
         <div v-for="row in ID" :key="row[0]" class="flex items-center justify-between text-[12.5px]">
           <dt class="text-cyber-text-3">{{ row[0] }}</dt>
@@ -100,23 +100,23 @@ const ID = computed(() => [
     <div class="rounded-lg border border-cyber-line bg-cyber-panel-2 p-4">
       <div class="flex items-center gap-2 mb-2">
         <GitCompareArrows :size="14" class="text-cyber-cyan" />
-        <h4 class="text-[13px] font-semibold text-cyber-text">Compute Util vs MFU vs SM Occupancy</h4>
+        <h4 class="text-[13px] font-semibold text-cyber-text">计算利用率 vs MFU vs SM 占用率</h4>
       </div>
       <p class="text-[12px] leading-snug text-cyber-text-2">
-        <span class="text-cyber-text font-medium">Compute utilization</span> shows the card is busy — not that the model is efficient.
-        <span class="text-cyber-text font-medium">MFU</span> divides achieved FLOPs by the device peak and is the better efficiency signal.
-        <span class="text-cyber-text font-medium">SM occupancy</span> is a kernel-level expert metric, sampled on demand.
+        <span class="text-cyber-text font-medium">计算利用率</span> 表示卡在忙——但不代表模型高效。
+        <span class="text-cyber-text font-medium">MFU</span> 用实测 FLOPs 除以设备峰值，是更好的效率信号。
+        <span class="text-cyber-text font-medium">SM 占用率</span> 是内核级专家指标，按需采样。
       </p>
     </div>
 
     <!-- event timeline -->
     <div class="cy-panel p-4">
-      <h4 class="text-[13px] font-semibold text-cyber-text mb-3">Event Timeline</h4>
+      <h4 class="text-[13px] font-semibold text-cyber-text mb-3">事件时间线</h4>
       <div class="relative pl-4">
         <span class="absolute left-[5px] top-1 bottom-1 w-px bg-cyber-line" />
         <div v-for="(e, i) in events" :key="i" class="relative flex items-center gap-3 py-1.5">
           <span class="absolute -left-[11px] h-2.5 w-2.5 rounded-full border-2 border-cyber-bg" :style="{ background: e.c }" />
-          <span class="cy-readout text-[11px] text-cyber-text-3 w-14">{{ e.t }}m ago</span>
+          <span class="cy-readout text-[11px] text-cyber-text-3 w-14">{{ e.t }}分钟前</span>
           <span class="text-[12.5px] text-cyber-text-2">{{ e.m }}</span>
         </div>
       </div>
@@ -124,10 +124,10 @@ const ID = computed(() => [
 
     <!-- actions -->
     <div class="grid grid-cols-2 gap-2 pt-1">
-      <button class="drw-btn"><Copy :size="14" />Copy ID</button>
-      <button class="drw-btn" @click="a.job_id && m.openDrawer('job', a.job_id)"><ExternalLink :size="14" />Open Job</button>
-      <button class="drw-btn"><BellPlus :size="14" />Create Alert Rule</button>
-      <button class="drw-btn"><Wrench :size="14" />Mark Maintenance</button>
+      <button class="drw-btn"><Copy :size="14" />复制 ID</button>
+      <button class="drw-btn" @click="a.job_id && m.openDrawer('job', a.job_id)"><ExternalLink :size="14" />打开作业</button>
+      <button class="drw-btn"><BellPlus :size="14" />创建告警规则</button>
+      <button class="drw-btn"><Wrench :size="14" />标记维护</button>
     </div>
   </Drawer>
 </template>

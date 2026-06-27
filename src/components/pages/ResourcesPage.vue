@@ -52,16 +52,16 @@ function tempColor(v) { return v > 86 ? '#ff5f6d' : v > 78 ? '#ffb648' : '#9aa7b
 const srcTone = { healthy: 'text-cyber-green', stale: 'text-cyber-amber', missing: 'text-cyber-red' }
 
 const COLS = [
-  { k: 'health_status', label: 'Status' },
-  { k: 'node_id', label: 'Node · Dev' },
-  { k: 'model_label', label: 'Model' },
-  { k: 'job_name', label: 'Current Job' },
-  { k: 'util_pct', label: 'Compute', metric: 'accelerator.utilization.compute.pct' },
-  { k: 'mem_pct', label: 'Memory', metric: 'accelerator.memory.used.pct' },
-  { k: 'temp_c', label: 'Temp', metric: 'accelerator.temperature.celsius' },
-  { k: 'power_w', label: 'Power', metric: 'accelerator.power.watt' },
-  { k: 'errors', label: 'Errors' },
-  { k: 'source_status', label: 'Source' }
+  { k: 'health_status', label: '状态' },
+  { k: 'node_id', label: '节点 · 设备' },
+  { k: 'model_label', label: '型号' },
+  { k: 'job_name', label: '当前作业' },
+  { k: 'util_pct', label: '计算', metric: 'accelerator.utilization.compute.pct' },
+  { k: 'mem_pct', label: '显存', metric: 'accelerator.memory.used.pct' },
+  { k: 'temp_c', label: '温度', metric: 'accelerator.temperature.celsius' },
+  { k: 'power_w', label: '功耗', metric: 'accelerator.power.watt' },
+  { k: 'errors', label: '错误' },
+  { k: 'source_status', label: '采集' }
 ]
 </script>
 
@@ -69,8 +69,8 @@ const COLS = [
   <div class="space-y-4">
     <header class="flex items-end justify-between">
       <div>
-        <h2 class="text-[28px] font-semibold text-charcoal tracking-tight">Compute Resources</h2>
-        <p class="text-[14px] text-steel mt-0.5">Region → Cluster → Node → accelerator inventory with hardware health.</p>
+        <h2 class="text-[28px] font-semibold text-charcoal tracking-tight">算力资源</h2>
+        <p class="text-[14px] text-steel mt-0.5">区域 → 集群 → 节点 → 加速卡 的资源清单与硬件健康。</p>
       </div>
     </header>
 
@@ -78,12 +78,12 @@ const COLS = [
 
     <!-- inventory summary -->
     <section class="grid grid-cols-2 lg:grid-cols-6 gap-3">
-      <SumCard :icon="Server" label="Total Cards" :value="summary.total" tone="#38e1ff" />
-      <SumCard :icon="Cpu" label="Healthy" :value="summary.healthy" tone="#37e0a0" />
-      <SumCard :icon="Cpu" label="Allocated" :value="summary.allocated" tone="#8b7bff" />
-      <SumCard :icon="AlertTriangle" label="HW Errors" :value="summary.errors" :tone="summary.errors ? '#ff5f6d' : '#5e6b7e'" />
-      <SumCard :icon="Zap" label="Avg Temp" :value="summary.avgTemp + '°C'" tone="#ffb648" />
-      <SumCard :icon="Zap" label="Avg Power" :value="summary.avgPower + 'W'" tone="#9cff57" />
+      <SumCard :icon="Server" label="加速卡总数" :value="summary.total" tone="#38e1ff" />
+      <SumCard :icon="Cpu" label="健康" :value="summary.healthy" tone="#37e0a0" />
+      <SumCard :icon="Cpu" label="已分配" :value="summary.allocated" tone="#8b7bff" />
+      <SumCard :icon="AlertTriangle" label="硬件错误" :value="summary.errors" :tone="summary.errors ? '#ff5f6d' : '#5e6b7e'" />
+      <SumCard :icon="Zap" label="平均温度" :value="summary.avgTemp + '°C'" tone="#ffb648" />
+      <SumCard :icon="Zap" label="平均功耗" :value="summary.avgPower + 'W'" tone="#9cff57" />
     </section>
 
     <!-- resource table (dark cyber data grid) -->
@@ -137,7 +137,7 @@ const COLS = [
                 <span v-if="a.xid_errors || a.ecc_errors" class="cy-readout text-[12px] text-cyber-red">
                   {{ a.xid_errors ? a.xid_errors + ' Xid' : '' }}{{ a.ecc_errors ? ' ' + a.ecc_errors + ' ECC' : '' }}
                 </span>
-                <span v-else class="text-cyber-text-3 text-[12px]">none</span>
+                <span v-else class="text-cyber-text-3 text-[12px]">无</span>
               </td>
               <td class="px-3 py-2.5"><span class="text-[12px] font-medium capitalize" :class="srcTone[a.source_status]">{{ a.source_status }}</span></td>
               <td class="px-2"><ChevronRight :size="15" class="text-cyber-text-3 opacity-0 group-hover:opacity-100 transition-opacity" /></td>
@@ -148,12 +148,12 @@ const COLS = [
 
       <!-- pagination -->
       <div class="flex items-center justify-between px-4 py-3 border-t border-cyber-line">
-        <span class="text-[12px] text-cyber-text-2 cy-readout">{{ sorted.length }} accelerators · page {{ page }}/{{ pageCount }}</span>
+        <span class="text-[12px] text-cyber-text-2 cy-readout">{{ sorted.length }} 张加速卡 · 第 {{ page }}/{{ pageCount }} 页</span>
         <div class="flex gap-1.5">
           <button class="px-3 h-8 rounded-md border border-cyber-line text-[12.5px] text-cyber-text-2 hover:bg-cyber-panel-2 disabled:opacity-40 transition-colors"
-            :disabled="page === 1" @click="page--">Prev</button>
+            :disabled="page === 1" @click="page--">上一页</button>
           <button class="px-3 h-8 rounded-md border border-cyber-line text-[12.5px] text-cyber-text-2 hover:bg-cyber-panel-2 disabled:opacity-40 transition-colors"
-            :disabled="page === pageCount" @click="page++">Next</button>
+            :disabled="page === pageCount" @click="page++">下一页</button>
         </div>
       </div>
     </section>

@@ -5,10 +5,10 @@ const props = defineProps({
 })
 
 const MAP = {
-  healthy: { label: 'Healthy', light: 'bg-tint-mint text-success border-transparent', dark: 'text-cyber-green' },
-  warning: { label: 'Warning', light: 'bg-tint-peach text-warning border-transparent', dark: 'text-cyber-amber' },
-  critical: { label: 'Critical', light: 'bg-[#fde0e0] text-danger border-transparent', dark: 'text-cyber-red' },
-  offline: { label: 'Offline', light: 'bg-tint-gray text-steel border-transparent', dark: 'text-cyber-text-3' }
+  healthy: { label: '健康', light: 'bg-tint-mint text-success border-transparent', dark: 'text-cyber-green' },
+  warning: { label: '警告', light: 'bg-tint-peach text-warning border-transparent', dark: 'text-cyber-amber' },
+  critical: { label: '严重', light: 'bg-[#fde0e0] text-danger border-transparent', dark: 'text-cyber-red' },
+  offline: { label: '离线', light: 'bg-tint-gray text-steel border-transparent', dark: 'text-cyber-text-3' }
 }
 const dotColor = { healthy: '#1aae39', warning: '#dd5b00', critical: '#e03131', offline: '#a4a097' }
 </script>

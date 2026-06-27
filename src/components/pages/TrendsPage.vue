@@ -14,9 +14,9 @@ const aggregation = ref('weighted_avg')
 const compare = ref(false)
 
 const GROUPS = [
-  { id: 'region', label: 'Region' },
-  { id: 'model', label: 'Accelerator Model' },
-  { id: 'tenant', label: 'Tenant' }
+  { id: 'region', label: '区域' },
+  { id: 'model', label: '加速卡型号' },
+  { id: 'tenant', label: '租户' }
 ]
 const AGGS = ['weighted_avg', 'avg', 'p95', 'max']
 const PALETTE = ['#38e1ff', '#8b7bff', '#9cff57', '#ffb648', '#ff5f6d', '#37e0a0']
@@ -66,31 +66,31 @@ const unit = computed(() => METRIC_DICTIONARY.find((x) => x.metric_id === metric
 <template>
   <div class="space-y-4">
     <header>
-      <h2 class="text-[28px] font-semibold text-charcoal tracking-tight">Trend Analysis</h2>
-      <p class="text-[14px] text-steel mt-0.5">Compare any metric across regions, accelerator models, tenants and time.</p>
+      <h2 class="text-[28px] font-semibold text-charcoal tracking-tight">趋势分析</h2>
+      <p class="text-[14px] text-steel mt-0.5">跨区域、加速卡型号、租户与时间对比任意指标。</p>
     </header>
 
     <!-- query builder -->
     <section class="nz-card p-4">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <Field label="Metric">
+        <Field label="指标">
           <select v-model="metricId" class="nz-input w-full">
             <option v-for="mm in METRIC_DICTIONARY" :key="mm.metric_id" :value="mm.metric_id">{{ mm.display_name }} ({{ mm.unit }})</option>
           </select>
         </Field>
-        <Field label="Group By">
+        <Field label="分组">
           <select v-model="groupBy" class="nz-input w-full">
             <option v-for="g in GROUPS" :key="g.id" :value="g.id">{{ g.label }}</option>
           </select>
         </Field>
-        <Field label="Aggregation">
+        <Field label="聚合">
           <select v-model="aggregation" class="nz-input w-full">
             <option v-for="ag in AGGS" :key="ag" :value="ag">{{ ag }}</option>
           </select>
         </Field>
-        <Field label="Baseline">
+        <Field label="基线">
           <button class="nz-input w-full flex items-center justify-between" @click="compare = !compare">
-            <span :class="compare ? 'text-ink' : 'text-stone'">Compare to yesterday</span>
+            <span :class="compare ? 'text-ink' : 'text-stone'">对比昨日</span>
             <span class="h-5 w-9 rounded-full relative transition-colors" :class="compare ? 'bg-primary' : 'bg-hairline-strong'">
               <span class="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all" :class="compare ? 'left-[18px]' : 'left-0.5'" />
             </span>
@@ -98,21 +98,21 @@ const unit = computed(() => METRIC_DICTIONARY.find((x) => x.metric_id === metric
         </Field>
       </div>
       <p class="mt-3 text-[12.5px] text-steel">
-        <MetricTooltip :metric-id="metricId" /> · aggregated by <span class="font-medium text-charcoal">{{ aggregation }}</span>,
-        grouped by <span class="font-medium text-charcoal">{{ GROUPS.find(g => g.id === groupBy).label }}</span>.
+        <MetricTooltip :metric-id="metricId" /> · 聚合方式 <span class="font-medium text-charcoal">{{ aggregation }}</span>，
+        分组依据 <span class="font-medium text-charcoal">{{ GROUPS.find(g => g.id === groupBy).label }}</span>。
       </p>
     </section>
 
     <!-- trend chart -->
     <section class="cy-panel p-5">
-      <h3 class="text-[15px] font-semibold text-cyber-text mb-1 flex items-center gap-2"><TrendingUp :size="16" class="text-cyber-cyan" />Trend</h3>
+      <h3 class="text-[15px] font-semibold text-cyber-text mb-1 flex items-center gap-2"><TrendingUp :size="16" class="text-cyber-cyan" />趋势</h3>
       <LineChart :series="compareSeries" :unit="unit" :height="260" :y-min="0" />
     </section>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <!-- distribution -->
       <section class="cy-panel p-5">
-        <h3 class="text-[15px] font-semibold text-cyber-text mb-4 flex items-center gap-2"><BarChart3 :size="16" class="text-cyber-violet" />Distribution</h3>
+        <h3 class="text-[15px] font-semibold text-cyber-text mb-4 flex items-center gap-2"><BarChart3 :size="16" class="text-cyber-violet" />分布</h3>
         <div class="flex items-end gap-1.5 h-40">
           <div v-for="d in dist" :key="d.label" class="flex-1 flex flex-col items-center justify-end gap-1">
             <div class="w-full rounded-t bg-gradient-to-t from-cyber-violet/30 to-cyber-cyan/80" :style="{ height: (d.count / maxDist * 100) + '%' }" />
@@ -123,12 +123,12 @@ const unit = computed(() => METRIC_DICTIONARY.find((x) => x.metric_id === metric
 
       <!-- result table -->
       <section class="cy-panel p-5">
-        <h3 class="text-[15px] font-semibold text-cyber-text mb-3">Result Table</h3>
+        <h3 class="text-[15px] font-semibold text-cyber-text mb-3">结果表</h3>
         <table class="w-full">
           <thead>
             <tr class="border-b border-cyber-line text-[11px] uppercase tracking-wide text-cyber-text-3">
-              <th class="text-left py-2">Group</th><th class="text-right py-2">Avg</th>
-              <th class="text-right py-2">P95</th><th class="text-right py-2">Max</th><th class="text-right py-2">Δ</th>
+              <th class="text-left py-2">分组</th><th class="text-right py-2">均值</th>
+              <th class="text-right py-2">P95</th><th class="text-right py-2">最大</th><th class="text-right py-2">Δ</th>
             </tr>
           </thead>
           <tbody>

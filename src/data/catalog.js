@@ -3,10 +3,10 @@
 // imports (`import { METRIC_DICTIONARY } from '../data/catalog.js'`) keep working.
 
 export const REGIONS = [
-  { region_id: 'cn-hangzhou', region_name: 'Hangzhou', cloud_provider: 'Aliyun', timezone: 'Asia/Shanghai', status: 'online' },
-  { region_id: 'cn-wulanchabu', region_name: 'Ulanqab', cloud_provider: 'Aliyun', timezone: 'Asia/Shanghai', status: 'online' },
-  { region_id: 'cn-shenzhen', region_name: 'Shenzhen', cloud_provider: 'Self-built', timezone: 'Asia/Shanghai', status: 'degraded' },
-  { region_id: 'us-west-2', region_name: 'US West', cloud_provider: 'AWS', timezone: 'America/Los_Angeles', status: 'online' }
+  { region_id: 'cn-hangzhou', region_name: '杭州', cloud_provider: '阿里云', timezone: 'Asia/Shanghai', status: 'online' },
+  { region_id: 'cn-wulanchabu', region_name: '乌兰察布', cloud_provider: '阿里云', timezone: 'Asia/Shanghai', status: 'online' },
+  { region_id: 'cn-shenzhen', region_name: '深圳', cloud_provider: '自建', timezone: 'Asia/Shanghai', status: 'degraded' },
+  { region_id: 'us-west-2', region_name: '美西', cloud_provider: 'AWS', timezone: 'America/Los_Angeles', status: 'online' }
 ]
 
 export const ACCELERATOR_TYPES = [
@@ -43,10 +43,10 @@ export const VENDOR_LABEL = {
 }
 
 export const TENANTS = [
-  { tenant_id: 'team-foundation', name: 'Foundation Models' },
-  { tenant_id: 'team-multimodal', name: 'Multimodal Lab' },
-  { tenant_id: 'team-rlhf', name: 'Alignment / RLHF' },
-  { tenant_id: 'team-research', name: 'Research' }
+  { tenant_id: 'team-foundation', name: '基础模型组' },
+  { tenant_id: 'team-multimodal', name: '多模态实验室' },
+  { tenant_id: 'team-rlhf', name: '对齐 / RLHF' },
+  { tenant_id: 'team-research', name: '研究组' }
 ]
 
 export const FRAMEWORKS = ['Megatron', 'DeepSpeed', 'FSDP', 'PAI-Megatron']
@@ -63,19 +63,19 @@ export {
 } from './metrics.js'
 
 export const TIME_RANGES = [
-  { id: '15m', label: 'Last 15m', minutes: 15 },
-  { id: '1h', label: 'Last 1h', minutes: 60 },
-  { id: '6h', label: 'Last 6h', minutes: 360 },
-  { id: '24h', label: 'Last 24h', minutes: 1440 },
-  { id: '7d', label: 'Last 7d', minutes: 10080 }
+  { id: '15m', label: '近 15 分钟', minutes: 15 },
+  { id: '1h', label: '近 1 小时', minutes: 60 },
+  { id: '6h', label: '近 6 小时', minutes: 360 },
+  { id: '24h', label: '近 24 小时', minutes: 1440 },
+  { id: '7d', label: '近 7 天', minutes: 10080 }
 ]
 
 export const TABS = [
-  { id: 'overview', label: 'Overview', icon: 'LayoutDashboard' },
-  { id: 'resources', label: 'Compute Resources', icon: 'Server' },
-  { id: 'jobs', label: 'Training Jobs', icon: 'Boxes' },
-  { id: 'trends', label: 'Trend Analysis', icon: 'TrendingUp' },
-  { id: 'alerts', label: 'Alerts', icon: 'BellRing' },
-  { id: 'cost', label: 'Cost & Capacity', icon: 'Wallet' },
-  { id: 'settings', label: 'Metrics & Config', icon: 'SlidersHorizontal' }
+  { id: 'overview', label: '总览', icon: 'LayoutDashboard' },
+  { id: 'resources', label: '算力资源', icon: 'Server' },
+  { id: 'jobs', label: '训练作业', icon: 'Boxes' },
+  { id: 'trends', label: '趋势分析', icon: 'TrendingUp' },
+  { id: 'alerts', label: '告警事件', icon: 'BellRing' },
+  { id: 'cost', label: '成本与容量', icon: 'Wallet' },
+  { id: 'settings', label: '指标与配置', icon: 'SlidersHorizontal' }
 ]

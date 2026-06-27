@@ -8,12 +8,13 @@ const sevFilter = ref('all')
 const statusFilter = ref('all')
 
 const SEV = [
-  { id: 'all', label: 'All' },
+  { id: 'all', label: '全部' },
   { id: 'critical', label: 'P0' },
   { id: 'high', label: 'P1' },
   { id: 'medium', label: 'P2' }
 ]
 const STATUS = ['all', 'firing', 'acknowledged', 'resolved']
+const STATUS_LABEL = { all: '全部', firing: '触发中', acknowledged: '已确认', resolved: '已恢复', silenced: '已静默' }
 
 const alerts = computed(() =>
   m.rawState.alerts.filter((a) => {
@@ -48,13 +49,13 @@ function ack(a) { a.status = a.status === 'acknowledged' ? 'firing' : 'acknowled
   <div class="space-y-4">
     <header class="flex items-end justify-between flex-wrap gap-3">
       <div>
-        <h2 class="text-[28px] font-semibold text-charcoal tracking-tight">Alert Events</h2>
-        <p class="text-[14px] text-steel mt-0.5">Discover, acknowledge, localize and close out compute alerts.</p>
+        <h2 class="text-[28px] font-semibold text-charcoal tracking-tight">告警事件</h2>
+        <p class="text-[14px] text-steel mt-0.5">发现、确认、定位并闭环算力告警。</p>
       </div>
       <div class="flex gap-2">
-        <Stat label="P0 firing" :value="counts.p0" color="#ff5f6d" />
-        <Stat label="P1 firing" :value="counts.p1" color="#ffb648" />
-        <Stat label="Recurring" :value="counts.recurring" color="#8b7bff" />
+        <Stat label="P0 触发中" :value="counts.p0" color="#ff5f6d" />
+        <Stat label="P1 触发中" :value="counts.p1" color="#ffb648" />
+        <Stat label="复发" :value="counts.recurring" color="#8b7bff" />
       </div>
     </header>
 
@@ -62,7 +63,7 @@ function ack(a) { a.status = a.status === 'acknowledged' ? 'firing' : 'acknowled
     <div class="flex items-center gap-2 flex-wrap">
       <button v-for="s in SEV" :key="s.id" class="nz-pill" :class="sevFilter === s.id ? 'nz-pill-active' : ''" @click="sevFilter = s.id">{{ s.label }}</button>
       <div class="h-5 w-px bg-hairline mx-1" />
-      <button v-for="s in STATUS" :key="s" class="nz-pill capitalize" :class="statusFilter === s ? 'nz-pill-active' : ''" @click="statusFilter = s">{{ s }}</button>
+      <button v-for="s in STATUS" :key="s" class="nz-pill" :class="statusFilter === s ? 'nz-pill-active' : ''" @click="statusFilter = s">{{ STATUS_LABEL[s] }}</button>
     </div>
 
     <!-- alert list -->
@@ -75,7 +76,7 @@ function ack(a) { a.status = a.status === 'acknowledged' ? 'firing' : 'acknowled
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
             <span class="text-[13.5px] font-semibold text-cyber-text">{{ a.name }}</span>
-            <span v-if="a.recurring" class="inline-flex items-center gap-0.5 text-[10.5px] text-cyber-violet"><Repeat :size="11" />recurring</span>
+            <span v-if="a.recurring" class="inline-flex items-center gap-0.5 text-[10.5px] text-cyber-violet"><Repeat :size="11" />复发</span>
           </div>
           <div class="text-[12px] text-cyber-text-2 font-mono truncate">{{ a.resource }}</div>
         </div>
@@ -86,18 +87,18 @@ function ack(a) { a.status = a.status === 'acknowledged' ? 'firing' : 'acknowled
         <div class="hidden lg:block text-[11.5px] text-cyber-text-3 cy-readout w-24 text-right shrink-0">
           {{ a.first_seen_min }}m → {{ a.last_seen_min }}m
         </div>
-        <span class="text-[12px] font-medium capitalize w-24 text-right shrink-0" :class="statusMeta[a.status]">{{ a.status }}</span>
+        <span class="text-[12px] font-medium w-24 text-right shrink-0" :class="statusMeta[a.status]">{{ STATUS_LABEL[a.status] || a.status }}</span>
         <div class="flex gap-1 shrink-0">
-          <button class="alert-act" :class="a.status==='acknowledged' ? 'text-cyber-amber border-cyber-amber/40' : ''" title="Acknowledge" @click="ack(a)"><Check :size="14" /></button>
-          <button class="alert-act" title="Silence"><BellOff :size="14" /></button>
+          <button class="alert-act" :class="a.status==='acknowledged' ? 'text-cyber-amber border-cyber-amber/40' : ''" title="确认" @click="ack(a)"><Check :size="14" /></button>
+          <button class="alert-act" title="静默"><BellOff :size="14" /></button>
         </div>
       </div>
-      <p v-if="!alerts.length" class="px-5 py-10 text-center text-[13px] text-cyber-text-3">No alerts match the current filters.</p>
+      <p v-if="!alerts.length" class="px-5 py-10 text-center text-[13px] text-cyber-text-3">没有符合当前筛选条件的告警。</p>
     </section>
 
     <!-- suggested actions hint -->
     <p class="px-1 text-[12.5px] text-steel">
-      Inhibition active: offline-card alerts suppress derived low-util / missing-temperature alerts for the same card.
+      抑制已启用：离线卡告警会抑制同一张卡的派生告警（低利用 / 缺温度）。
     </p>
   </div>
 </template>

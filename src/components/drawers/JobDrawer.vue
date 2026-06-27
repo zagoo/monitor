@@ -28,10 +28,10 @@ const lossCharts = computed(() => {
 })
 const anomalies = computed(() => {
   const e = []
-  if (j.value.comm_wait_pct > 30) e.push({ t: 8, c: '#ff5f6d', m: `Communication wait ${j.value.comm_wait_pct}% — NCCL on critical path` })
-  if (j.value.data_wait_pct > 25) e.push({ t: 19, c: '#ffb648', m: `DataLoader stall ${j.value.data_wait_pct}%` })
-  e.push({ t: 34, c: '#9cff57', m: 'Checkpoint saved (4.2 GB, 12s)' })
-  e.push({ t: 70, c: '#38e1ff', m: 'Pod rescheduled to node07' })
+  if (j.value.comm_wait_pct > 30) e.push({ t: 8, c: '#ff5f6d', m: `通信等待 ${j.value.comm_wait_pct}% —— NCCL 处于关键路径` })
+  if (j.value.data_wait_pct > 25) e.push({ t: 19, c: '#ffb648', m: `DataLoader 阻塞 ${j.value.data_wait_pct}%` })
+  e.push({ t: 34, c: '#9cff57', m: 'Checkpoint 已保存（4.2 GB，12s）' })
+  e.push({ t: 70, c: '#38e1ff', m: 'Pod 已重新调度至 node07' })
   return e
 })
 function mfuColor(v) { return v >= 45 ? '#37e0a0' : v >= 30 ? '#38e1ff' : '#ffb648' }
@@ -41,9 +41,9 @@ function mfuColor(v) { return v >= 45 ? '#37e0a0' : v >= 30 ? '#38e1ff' : '#ffb6
   <Drawer v-if="j" :title="j.job_name" :subtitle="`${j.framework} · ${j.parallel_strategy} · ${j.tenant_name}`" @close="emit('close')">
     <div class="flex items-center gap-2">
       <span class="inline-flex items-center gap-1.5 text-[12px] font-medium" :class="j.status==='running' ? 'text-cyber-green' : 'text-cyber-amber'">
-        <Radio :size="13" /> {{ j.status }}
+        <Radio :size="13" /> {{ ({ running: '运行中', queued: '排队中', completed: '已完成' })[j.status] || j.status }}
       </span>
-      <span class="text-[12px] text-cyber-text-2">· {{ j.cards }} cards · started {{ Math.round(j.started_min_ago/60) }}h ago</span>
+      <span class="text-[12px] text-cyber-text-2">· {{ j.cards }} 卡 · 已运行 {{ Math.round(j.started_min_ago/60) }} 小时</span>
     </div>
 
     <div class="grid grid-cols-4 gap-2">
@@ -54,7 +54,7 @@ function mfuColor(v) { return v >= 45 ? '#37e0a0' : v >= 30 ? '#38e1ff' : '#ffb6
     </div>
 
     <div class="cy-panel p-4">
-      <h4 class="text-[13px] font-semibold text-cyber-text mb-3">Step-Time Breakdown</h4>
+      <h4 class="text-[13px] font-semibold text-cyber-text mb-3">Step 耗时分解</h4>
       <div class="flex h-6 w-full rounded-md overflow-hidden border border-cyber-line">
         <div v-for="b in breakdown" :key="b.name" :style="{ width: b.pct + '%', background: b.color }" :title="`${b.name} ${b.pct}%`" />
       </div>
@@ -68,25 +68,25 @@ function mfuColor(v) { return v >= 45 ? '#37e0a0' : v >= 30 ? '#38e1ff' : '#ffb6
     </div>
 
     <div class="cy-panel p-4">
-      <h4 class="text-[13px] font-semibold text-cyber-text mb-2">Collective Communication</h4>
+      <h4 class="text-[13px] font-semibold text-cyber-text mb-2">集合通信</h4>
       <LineChart :series="commCharts" unit="ms" :height="140" :y-min="0" />
     </div>
     <div class="cy-panel p-4">
-      <h4 class="text-[13px] font-semibold text-cyber-text mb-2">Data Loading</h4>
+      <h4 class="text-[13px] font-semibold text-cyber-text mb-2">数据加载</h4>
       <LineChart :series="ioCharts" unit="ms" :height="120" :y-min="0" />
     </div>
     <div class="cy-panel p-4">
-      <h4 class="text-[13px] font-semibold text-cyber-text mb-2">Loss Curve</h4>
+      <h4 class="text-[13px] font-semibold text-cyber-text mb-2">Loss 曲线</h4>
       <LineChart :series="lossCharts" :height="130" :y-min="0" :y-max="3" />
     </div>
 
     <div class="cy-panel p-4">
-      <h4 class="text-[13px] font-semibold text-cyber-text mb-3 flex items-center gap-2"><AlertTriangle :size="14" class="text-cyber-amber" />Job Events & Anomalies</h4>
+      <h4 class="text-[13px] font-semibold text-cyber-text mb-3 flex items-center gap-2"><AlertTriangle :size="14" class="text-cyber-amber" />作业事件与异常</h4>
       <div class="relative pl-4">
         <span class="absolute left-[5px] top-1 bottom-1 w-px bg-cyber-line" />
         <div v-for="(e, i) in anomalies" :key="i" class="relative flex items-start gap-3 py-1.5">
           <span class="absolute -left-[11px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-cyber-bg" :style="{ background: e.c }" />
-          <span class="cy-readout text-[11px] text-cyber-text-3 w-14 shrink-0">{{ e.t }}m ago</span>
+          <span class="cy-readout text-[11px] text-cyber-text-3 w-14 shrink-0">{{ e.t }}分钟前</span>
           <span class="text-[12.5px] text-cyber-text-2">{{ e.m }}</span>
         </div>
       </div>

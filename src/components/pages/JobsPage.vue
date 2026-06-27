@@ -22,20 +22,22 @@ const breakdown = computed(() => selected.value ? stepBreakdown(selected.value) 
 const skew = computed(() => selected.value ? skewMatrix(selected.value) : null)
 
 function statusTone(s) { return s === 'running' ? 'text-cyber-green' : s === 'queued' ? 'text-cyber-amber' : 'text-cyber-text-3' }
+const statusLabel = { running: '运行中', queued: '排队中', completed: '已完成' }
 function mfuColor(v) { return v >= 45 ? '#37e0a0' : v >= 30 ? '#38e1ff' : '#ffb648' }
 const skewColor = { normal: '#37e0a0', slight: '#ffb648', obvious: '#ff8a3d', severe: '#ff5f6d' }
+const skewLabel = { normal: '正常', slight: '轻微', obvious: '明显', severe: '严重' }
 </script>
 
 <template>
   <div class="space-y-4">
     <header class="flex items-end justify-between gap-4 flex-wrap">
       <div>
-        <h2 class="text-[28px] font-semibold text-charcoal tracking-tight">Training Jobs</h2>
-        <p class="text-[14px] text-steel mt-0.5">Find where a job is slow: compute, communication, data, checkpoint or hardware skew.</p>
+        <h2 class="text-[28px] font-semibold text-charcoal tracking-tight">训练作业</h2>
+        <p class="text-[14px] text-steel mt-0.5">定位作业慢在哪：计算、通信、数据、checkpoint 或硬件偏差。</p>
       </div>
       <div class="relative w-72">
         <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-stone" />
-        <input v-model="q" class="nz-input w-full pl-9" placeholder="Search job or tenant…" />
+        <input v-model="q" class="nz-input w-full pl-9" placeholder="搜索作业或租户…" />
       </div>
     </header>
 
@@ -43,8 +45,8 @@ const skewColor = { normal: '#37e0a0', slight: '#ffb648', obvious: '#ff8a3d', se
       <!-- job list -->
       <div class="xl:col-span-5 cy-panel overflow-hidden">
         <div class="px-4 py-2.5 border-b border-cyber-line flex items-center justify-between">
-          <span class="text-[13px] font-semibold text-cyber-text">{{ jobs.length }} jobs</span>
-          <span class="micro-label text-cyber-text-3">sorted by wait</span>
+          <span class="text-[13px] font-semibold text-cyber-text">{{ jobs.length }} 个作业</span>
+          <span class="micro-label text-cyber-text-3">按等待排序</span>
         </div>
         <div class="max-h-[560px] overflow-y-auto scroll-thin on-dark">
           <button v-for="j in jobs" :key="j.job_id"
@@ -53,10 +55,10 @@ const skewColor = { normal: '#37e0a0', slight: '#ffb648', obvious: '#ff8a3d', se
             @click="selectedId = j.job_id">
             <div class="flex items-center justify-between">
               <span class="font-mono text-[13px] text-cyber-text truncate">{{ j.job_name }}</span>
-              <span class="text-[11px] font-medium capitalize" :class="statusTone(j.status)">● {{ j.status }}</span>
+              <span class="text-[11px] font-medium" :class="statusTone(j.status)">● {{ statusLabel[j.status] || j.status }}</span>
             </div>
             <div class="mt-1 flex items-center gap-3 text-[11.5px] text-cyber-text-3">
-              <span>{{ j.tenant_name }}</span><span>·</span><span>{{ j.cards }} cards</span><span>·</span>
+              <span>{{ j.tenant_name }}</span><span>·</span><span>{{ j.cards }} 卡</span><span>·</span>
               <span class="cy-readout">MFU {{ j.mfu_pct }}%</span>
             </div>
             <div class="mt-1.5 flex gap-1.5">
@@ -74,25 +76,25 @@ const skewColor = { normal: '#37e0a0', slight: '#ffb648', obvious: '#ff8a3d', se
           <div class="flex items-start justify-between">
             <div>
               <h3 class="font-mono text-[16px] text-cyber-text">{{ selected.job_name }}</h3>
-              <p class="text-[12.5px] text-cyber-text-2 mt-0.5">{{ selected.framework }} · {{ selected.parallel_strategy }} · {{ selected.tenant_name }} · {{ selected.cards }} cards</p>
+              <p class="text-[12.5px] text-cyber-text-2 mt-0.5">{{ selected.framework }} · {{ selected.parallel_strategy }} · {{ selected.tenant_name }} · {{ selected.cards }} 卡</p>
             </div>
-            <button class="drw-btn" @click="m.openDrawer('job', selected.job_id)"><Maximize2 :size="13" />Deep dive</button>
+            <button class="drw-btn" @click="m.openDrawer('job', selected.job_id)"><Maximize2 :size="13" />深入分析</button>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-            <Stat :icon="Activity" label="Throughput" :value="(selected.tokens_per_s/1000).toFixed(1)+'k'" unit="tok/s" color="#38e1ff" metric-id="training.throughput.tokens" />
-            <Stat :icon="Timer" label="Step p95" :value="selected.step_p95_ms" unit="ms" color="#8b7bff" metric-id="training.step.time.ms" />
+            <Stat :icon="Activity" label="吞吐" :value="(selected.tokens_per_s/1000).toFixed(1)+'k'" unit="tok/s" color="#38e1ff" metric-id="training.throughput.tokens" />
+            <Stat :icon="Timer" label="Step P95" :value="selected.step_p95_ms" unit="ms" color="#8b7bff" metric-id="training.step.time.ms" />
             <Stat :icon="Gauge" label="MFU" :value="selected.mfu_pct" unit="%" :color="mfuColor(selected.mfu_pct)" metric-id="training.mfu.pct" />
-            <Stat :icon="Coins" label="Cost" :value="'$'+selected.cost_per_mtok" unit="/Mtok" color="#ffb648" metric-id="cost.per_million_tokens" />
+            <Stat :icon="Coins" label="成本" :value="'$'+selected.cost_per_mtok" unit="/Mtok" color="#ffb648" metric-id="cost.per_million_tokens" />
           </div>
         </div>
 
         <!-- step time breakdown (stacked bar) -->
         <div class="cy-panel p-5">
           <div class="flex items-center justify-between mb-3">
-            <h4 class="text-[14px] font-semibold text-cyber-text flex items-center gap-1.5">Step-Time Breakdown
+            <h4 class="text-[14px] font-semibold text-cyber-text flex items-center gap-1.5">Step 耗时分解
               <MetricTooltip metric-id="training.step.breakdown" icon-only dark />
             </h4>
-            <span class="cy-readout text-[12px] text-cyber-text-2">{{ selected.step_p50_ms }} ms median</span>
+            <span class="cy-readout text-[12px] text-cyber-text-2">中位 {{ selected.step_p50_ms }} ms</span>
           </div>
           <div class="flex h-7 w-full rounded-md overflow-hidden border border-cyber-line">
             <div v-for="b in breakdown" :key="b.name" :style="{ width: b.pct + '%', background: b.color }"
@@ -110,10 +112,10 @@ const skewColor = { normal: '#37e0a0', slight: '#ffb648', obvious: '#ff8a3d', se
         <!-- accelerator skew matrix (§11.3.4) -->
         <div class="cy-panel p-5">
           <div class="flex items-center justify-between mb-3">
-            <h4 class="text-[14px] font-semibold text-cyber-text flex items-center gap-2"><Layers :size="15" class="text-cyber-cyan" />Accelerator Skew Matrix
+            <h4 class="text-[14px] font-semibold text-cyber-text flex items-center gap-2"><Layers :size="15" class="text-cyber-cyan" />加速卡偏差矩阵
               <MetricTooltip metric-id="training.wait.barrier.pct" icon-only dark />
             </h4>
-            <span class="text-[11px] text-cyber-text-3">deviation vs job median step time</span>
+            <span class="text-[11px] text-cyber-text-3">相对作业中位 step 耗时的偏差</span>
           </div>
           <div class="overflow-x-auto scroll-thin on-dark">
             <div class="inline-grid gap-1" :style="{ gridTemplateColumns: `auto repeat(${skew.cols}, 28px)` }">
@@ -132,7 +134,7 @@ const skewColor = { normal: '#37e0a0', slight: '#ffb648', obvious: '#ff8a3d', se
           </div>
           <div class="mt-3 flex items-center gap-3 text-[11px] text-cyber-text-3">
             <span v-for="(c, k) in skewColor" :key="k" class="flex items-center gap-1">
-              <span class="h-2 w-2 rounded-sm" :style="{ background: c }" />{{ k }}
+              <span class="h-2 w-2 rounded-sm" :style="{ background: c }" />{{ skewLabel[k] }}
             </span>
           </div>
         </div>

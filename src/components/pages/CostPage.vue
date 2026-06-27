@@ -32,30 +32,30 @@ const goodColor = computed(() => costSummary.value.goodput >= 80 ? '#37e0a0' : c
 <template>
   <div class="space-y-4">
     <header>
-      <h2 class="text-[28px] font-semibold text-charcoal tracking-tight">Cost & Capacity</h2>
-      <p class="text-[14px] text-steel mt-0.5">Card-hours, idle waste, Goodput, queues and capacity watermark.</p>
+      <h2 class="text-[28px] font-semibold text-charcoal tracking-tight">成本与容量</h2>
+      <p class="text-[14px] text-steel mt-0.5">卡时、空闲浪费、Goodput、排队与容量水位。</p>
     </header>
 
     <!-- core cards -->
     <section class="grid grid-cols-2 lg:grid-cols-3 gap-4">
-      <Card :icon="Clock" title="Card-Hours" :value="fmt(costSummary.card_hours)" accent="#38e1ff" metric-id="cost.card_hours"
-        :rows="[['Allocated', fmt(costSummary.allocated_hours)], ['Active', fmt(costSummary.active_hours)]]" />
-      <Card :icon="TrendingDown" title="Waste" :value="'$' + fmt(costSummary.waste_cost)" accent="#ff5f6d" metric-id="cost.idle_card_hours"
-        :rows="[['Idle card-h', fmt(costSummary.idle_hours)], ['Low-util card-h', fmt(costSummary.low_util_hours)]]" />
+      <Card :icon="Clock" title="卡时" :value="fmt(costSummary.card_hours)" accent="#38e1ff" metric-id="cost.card_hours"
+        :rows="[['已分配', fmt(costSummary.allocated_hours)], ['活跃', fmt(costSummary.active_hours)]]" />
+      <Card :icon="TrendingDown" title="浪费" :value="'$' + fmt(costSummary.waste_cost)" accent="#ff5f6d" metric-id="cost.idle_card_hours"
+        :rows="[['空闲卡时', fmt(costSummary.idle_hours)], ['低利用卡时', fmt(costSummary.low_util_hours)]]" />
       <Card :icon="Gauge" title="Goodput" :value="costSummary.goodput + '%'" :accent="goodColor" metric-id="cost.goodput.pct"
-        :rows="[['Effective training', 'ratio'], ['Target', '≥ 80%']]" />
-      <Card :icon="ListOrdered" title="Queue" :value="costSummary.queue_p95 + 'm'" accent="#ffb648" metric-id="sched.queue.time"
-        :rows="[['P50 wait', costSummary.queue_p50 + 'm'], ['Queue depth', costSummary.queue_depth]]" />
-      <Card :icon="Boxes" title="Fragmentation" :value="costSummary.fragmentation_pct + '%'" accent="#8b7bff" metric-id="sched.fragmentation.pct"
-        :rows="[['Unschedulable', 'remaining'], ['By topology', 'gray-zone']]" />
-      <Card :icon="Activity" title="Capacity Watermark" :value="costSummary.watermark_pct + '%'" accent="#9cff57" metric-id="fleet.cards.allocated"
-        :rows="[['7d peak', '91%'], ['Forecast 30d', '+6%']]" />
+        :rows="[['有效训练', '占比'], ['目标', '≥ 80%']]" />
+      <Card :icon="ListOrdered" title="排队" :value="costSummary.queue_p95 + 'm'" accent="#ffb648" metric-id="sched.queue.time"
+        :rows="[['P50 等待', costSummary.queue_p50 + 'm'], ['队列深度', costSummary.queue_depth]]" />
+      <Card :icon="Boxes" title="碎片化" :value="costSummary.fragmentation_pct + '%'" accent="#8b7bff" metric-id="sched.fragmentation.pct"
+        :rows="[['不可调度', '剩余'], ['按拓扑', '灰区']]" />
+      <Card :icon="Activity" title="容量水位" :value="costSummary.watermark_pct + '%'" accent="#9cff57" metric-id="fleet.cards.allocated"
+        :rows="[['7 天峰值', '91%'], ['30 天预测', '+6%']]" />
     </section>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <!-- cost by tenant -->
       <section class="cy-panel p-5">
-        <h3 class="text-[15px] font-semibold text-cyber-text mb-4">Card-Hours by Tenant</h3>
+        <h3 class="text-[15px] font-semibold text-cyber-text mb-4">各租户卡时</h3>
         <div class="space-y-3">
           <div v-for="t in byTenant" :key="t.name">
             <div class="flex items-center justify-between text-[12.5px] mb-1">
@@ -71,7 +71,7 @@ const goodColor = computed(() => costSummary.value.goodput >= 80 ? '#37e0a0' : c
 
       <!-- watermark trend -->
       <section class="cy-panel p-5">
-        <h3 class="text-[15px] font-semibold text-cyber-text mb-2">Allocation Watermark · 7d</h3>
+        <h3 class="text-[15px] font-semibold text-cyber-text mb-2">分配水位 · 近 7 天</h3>
         <LineChart :series="watermark" unit="%" :height="200" :y-max="100" :y-min="0" />
       </section>
     </div>

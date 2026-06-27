@@ -19,10 +19,10 @@ const heroSpark = computed(() => state.accelerators.slice(0, 24).map((a) => a.ut
 
 const topTab = ref('abnormal')
 const TOP_TABS = [
-  { id: 'abnormal', label: 'Abnormal' },
-  { id: 'lowUtil', label: 'Low Util' },
-  { id: 'slowJobs', label: 'Slow Jobs' },
-  { id: 'cost', label: 'Cost' }
+  { id: 'abnormal', label: '异常' },
+  { id: 'lowUtil', label: '低利用' },
+  { id: 'slowJobs', label: '慢作业' },
+  { id: 'cost', label: '成本' }
 ]
 const topRows = computed(() => topN.value[topTab.value])
 
@@ -61,26 +61,26 @@ const sevDot = { critical: '#ff5f6d', high: '#ffb648', medium: '#38e1ff', low: '
       <div class="relative flex-1 z-10">
         <div class="flex items-center gap-2.5">
           <span class="cy-dot-live" />
-          <span class="micro-label text-cyber-cyan">Global Compute Health</span>
+          <span class="micro-label text-cyber-cyan">全局算力健康</span>
           <span
             class="nz-chip border-transparent text-[11px]"
             :class="state.dataStatus === 'complete' ? 'bg-white/10 text-white/80' : 'bg-warning/20 text-warning'"
-          >{{ state.dataStatus === 'complete' ? 'All regions reporting' : 'Partial data' }}</span>
+          >{{ state.dataStatus === 'complete' ? '全部区域上报中' : '数据不完整' }}</span>
         </div>
-        <h1 class="mt-2 text-[34px] font-semibold leading-tight">Fleet running at {{ kpis.avg_util }}% average utilization</h1>
+        <h1 class="mt-2 text-[34px] font-semibold leading-tight">机群平均利用率 {{ kpis.avg_util }}%</h1>
         <p class="mt-1 text-[14px] text-on-dark-muted">
-          {{ kpis.total }} accelerators across {{ m.REGIONS.length }} regions ·
-          {{ kpis.active }} actively training · {{ kpis.p0 }} P0 alerts open
+          {{ m.REGIONS.length }} 个区域共 {{ kpis.total }} 张加速卡 ·
+          {{ kpis.active }} 张正在训练 · {{ kpis.p0 }} 条 P0 告警待处理
         </p>
       </div>
 
       <!-- right mini-KPI workspace card (§12.3.1) -->
       <div class="relative z-10 hidden lg:block w-[420px] h-[132px] rounded-lg bg-canvas shadow-nz-3 ml-6">
         <div class="grid grid-cols-4 h-full divide-x divide-hairline">
-          <MiniKpi label="Healthy" :value="kpis.availability_pct + '%'" tone="#1aae39" />
-          <MiniKpi label="Active" :value="kpis.active" tone="#5645d4" />
-          <MiniKpi label="Alerts" :value="kpis.p0" :tone="kpis.p0 ? '#e03131' : '#a4a097'" />
-          <MiniKpi label="Waste/h" :value="'$' + fmt(kpis.waste_cost)" tone="#dd5b00" />
+          <MiniKpi label="健康" :value="kpis.availability_pct + '%'" tone="#1aae39" />
+          <MiniKpi label="活跃" :value="kpis.active" tone="#5645d4" />
+          <MiniKpi label="告警" :value="kpis.p0" :tone="kpis.p0 ? '#e03131' : '#a4a097'" />
+          <MiniKpi label="浪费/时" :value="'$' + fmt(kpis.waste_cost)" tone="#dd5b00" />
         </div>
       </div>
     </section>
@@ -89,13 +89,13 @@ const sevDot = { critical: '#ff5f6d', high: '#ffb648', medium: '#38e1ff', low: '
 
     <!-- ── KPI Cards row (dark cyber) ── -->
     <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-      <KpiCard label="Available Cards" :value="kpis.healthy" :sub="kpis.availability_pct + '% availability'"
+      <KpiCard label="可用卡数" :value="kpis.healthy" :sub="'可用率 ' + kpis.availability_pct + '%'"
         icon="HeartPulse" accent="#37e0a0" :spark="heroSpark" :delta="0.6" delta-good="up" metric-id="fleet.cards.available" />
-      <KpiCard label="Active Training" :value="kpis.active" :sub="kpis.allocated + ' allocated'"
+      <KpiCard label="活跃训练" :value="kpis.active" :sub="'已分配 ' + kpis.allocated"
         icon="Cpu" accent="#38e1ff" :spark="heroSpark.map(v => v*0.9)" :delta="-1.2" delta-good="up" metric-id="fleet.cards.active" />
-      <KpiCard label="Avg Compute Util" :value="kpis.avg_util" unit="%"
+      <KpiCard label="平均计算利用率" :value="kpis.avg_util" unit="%"
         icon="Gauge" accent="#8b7bff" :spark="heroSpark" :delta="2.4" delta-good="up" metric-id="fleet.util.compute.avg" />
-      <KpiCard label="P0 Alerts" :value="kpis.p0" :sub="kpis.hw_err + ' hw events'"
+      <KpiCard label="P0 告警" :value="kpis.p0" :sub="kpis.hw_err + ' 硬件事件'"
         icon="BellRing" :accent="kpis.p0 ? '#ff5f6d' : '#37e0a0'" :delta="kpis.p0 ? 1 : 0" delta-good="down" metric-id="alerts.p0.count" />
     </section>
 
@@ -106,19 +106,19 @@ const sevDot = { critical: '#ff5f6d', high: '#ffb648', medium: '#38e1ff', low: '
         <div class="flex items-center justify-between mb-4">
           <div>
             <h3 class="text-[15px] font-semibold text-cyber-text flex items-center gap-2">
-              Region × Accelerator Matrix
+              区域 × 加速卡矩阵
               <MetricTooltip metric-id="accelerator.utilization.compute.pct" icon-only dark />
             </h3>
-            <p class="text-[12px] text-cyber-text-2 mt-0.5">Health rate · avg utilization · P0 count — click a cell to drill in</p>
+            <p class="text-[12px] text-cyber-text-2 mt-0.5">健康率 · 平均利用率 · P0 数 —— 点击单元格下钻</p>
           </div>
-          <span class="text-[11px] text-cyber-text-3 cy-readout">weighted rollup</span>
+          <span class="text-[11px] text-cyber-text-3 cy-readout">加权汇总</span>
         </div>
 
         <div class="overflow-x-auto scroll-thin on-dark">
           <table class="w-full border-separate border-spacing-1">
             <thead>
               <tr>
-                <th class="text-left text-[11px] font-semibold uppercase tracking-wide text-cyber-text-3 pl-1 pb-1 w-28">Region</th>
+                <th class="text-left text-[11px] font-semibold uppercase tracking-wide text-cyber-text-3 pl-1 pb-1 w-28">区域</th>
                 <th v-for="mod in regionModelMatrix.models" :key="mod.model"
                   class="text-[11px] font-semibold uppercase tracking-wide text-cyber-text-3 pb-1 px-1 text-center">
                   {{ mod.label.replace(' Blackwell','').replace(' PPU','') }}
@@ -143,7 +143,7 @@ const sevDot = { critical: '#ff5f6d', high: '#ffb648', medium: '#38e1ff', low: '
                       {{ cell.p0 ? '●'+cell.p0 : '' }}
                     </span>
                     <span class="cy-readout text-[17px] font-semibold" :style="{ color: utilColor(cell.avg_util) }">{{ cell.avg_util }}%</span>
-                    <span class="text-[10.5px] text-cyber-text-2 cy-readout">{{ cell.count }} cards · {{ cell.health_pct }}%</span>
+                    <span class="text-[10.5px] text-cyber-text-2 cy-readout">{{ cell.count }} 卡 · {{ cell.health_pct }}%</span>
                   </button>
                   <div v-else class="w-full h-16 rounded-md border border-dashed border-cyber-line-soft grid place-items-center text-[11px] text-cyber-text-3">—</div>
                 </td>
@@ -202,18 +202,18 @@ const sevDot = { critical: '#ff5f6d', high: '#ffb648', medium: '#38e1ff', low: '
 
     <!-- ── Event timeline ── -->
     <section class="cy-panel p-5">
-      <h3 class="text-[15px] font-semibold text-cyber-text mb-4">Event Timeline</h3>
+      <h3 class="text-[15px] font-semibold text-cyber-text mb-4">事件时间线</h3>
       <div class="relative pl-4">
         <span class="absolute left-[5px] top-1 bottom-1 w-px bg-cyber-line" />
         <div v-for="e in timeline" :key="e.id" class="relative flex items-start gap-3 py-2">
           <span class="absolute -left-[11px] top-3 h-2.5 w-2.5 rounded-full border-2 border-cyber-bg" :style="{ background: sevDot[e.severity] }" />
-          <span class="cy-readout text-[11px] text-cyber-text-3 w-14 shrink-0 pt-0.5">{{ e.min_ago }}m ago</span>
+          <span class="cy-readout text-[11px] text-cyber-text-3 w-14 shrink-0 pt-0.5">{{ e.min_ago }}分钟前</span>
           <div class="min-w-0">
             <span class="text-[13px] font-medium text-cyber-text">{{ e.title }}</span>
             <span class="text-[12.5px] text-cyber-text-2"> — {{ e.detail }}</span>
           </div>
         </div>
-        <p v-if="!timeline.length" class="text-[13px] text-cyber-text-3 py-4">No events in the selected window.</p>
+        <p v-if="!timeline.length" class="text-[13px] text-cyber-text-3 py-4">所选时间窗内暂无事件。</p>
       </div>
     </section>
   </div>

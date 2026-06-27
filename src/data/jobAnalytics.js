@@ -27,13 +27,13 @@ export function stepBreakdown(job) {
   const ckpt = 3 + r() * 3
   const idle = Math.max(0, 100 - comm - data - fwd - bwd - opt - ckpt)
   const parts = [
-    { name: 'Forward', pct: fwd, color: '#38e1ff' },
-    { name: 'Backward', pct: bwd, color: '#5aa9ff' },
-    { name: 'Optimizer', pct: opt, color: '#8b7bff' },
-    { name: 'Communication', pct: comm, color: '#ff5f6d' },
-    { name: 'Data Loading', pct: data, color: '#ffb648' },
+    { name: '前向', pct: fwd, color: '#38e1ff' },
+    { name: '反向', pct: bwd, color: '#5aa9ff' },
+    { name: '优化器', pct: opt, color: '#8b7bff' },
+    { name: '通信', pct: comm, color: '#ff5f6d' },
+    { name: '数据加载', pct: data, color: '#ffb648' },
     { name: 'Checkpoint', pct: ckpt, color: '#9cff57' },
-    { name: 'Idle / Barrier', pct: idle, color: '#5e6b7e' }
+    { name: '空闲/屏障', pct: idle, color: '#5e6b7e' }
   ]
   const total = parts.reduce((s, p) => s + p.pct, 0)
   return parts.map((p) => ({ ...p, pct: +(p.pct / total * 100).toFixed(1) }))

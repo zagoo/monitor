@@ -6,9 +6,9 @@ const m = useMonitor()
 const { state, REGIONS } = m
 
 const favorites = [
-  { label: 'Fleet health · all regions', tab: 'overview' },
-  { label: 'Allocated low-util cards', tab: 'resources' },
-  { label: 'Slow training jobs', tab: 'jobs' }
+  { label: '机群健康 · 全部区域', tab: 'overview' },
+  { label: '已分配低利用卡', tab: 'resources' },
+  { label: '慢训练作业', tab: 'jobs' }
 ]
 const recentJobs = ['qwen-pretrain-stage3', 'moe-256e-pretrain', 'llava-vlm-sft', 'reward-model-v4']
 
@@ -18,7 +18,7 @@ function regionFilter(id) { m.resetFilters(); m.rawState.filters.region_ids = [i
 
 <template>
   <aside class="w-[248px] shrink-0 bg-surface-soft border-r border-hairline overflow-y-auto scroll-thin py-4 px-3">
-    <Section title="Favorites" :icon="Star">
+    <Section title="收藏" :icon="Star">
       <button
         v-for="f in favorites" :key="f.label"
         class="rail-item" @click="m.setTab(f.tab)"
@@ -28,7 +28,7 @@ function regionFilter(id) { m.resetFilters(); m.rawState.filters.region_ids = [i
       </button>
     </Section>
 
-    <Section title="Regions" :icon="MapPin">
+    <Section title="区域" :icon="MapPin">
       <button
         v-for="r in REGIONS" :key="r.region_id"
         class="rail-item justify-between group"
@@ -43,13 +43,13 @@ function regionFilter(id) { m.resetFilters(); m.rawState.filters.region_ids = [i
       </button>
     </Section>
 
-    <Section title="Saved Views" :icon="LayoutTemplate">
-      <button class="rail-item"><LayoutTemplate :size="13" class="text-stone shrink-0" /><span class="truncate">On-call default</span></button>
-      <button class="rail-item"><LayoutTemplate :size="13" class="text-stone shrink-0" /><span class="truncate">FinOps weekly</span></button>
-      <button class="rail-item text-steel"><Plus :size="13" class="shrink-0" /><span>New view</span></button>
+    <Section title="已存视图" :icon="LayoutTemplate">
+      <button class="rail-item"><LayoutTemplate :size="13" class="text-stone shrink-0" /><span class="truncate">值班默认</span></button>
+      <button class="rail-item"><LayoutTemplate :size="13" class="text-stone shrink-0" /><span class="truncate">FinOps 周报</span></button>
+      <button class="rail-item text-steel"><Plus :size="13" class="shrink-0" /><span>新建视图</span></button>
     </Section>
 
-    <Section title="Recent Jobs" :icon="History">
+    <Section title="最近作业" :icon="History">
       <button
         v-for="j in recentJobs" :key="j"
         class="rail-item font-mono text-[12.5px]" @click="m.setTab('jobs')"

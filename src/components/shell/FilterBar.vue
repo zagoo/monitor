@@ -24,18 +24,18 @@ onBeforeUnmount(() => {
 })
 
 const PRESETS = [
-  { id: 'low_util', label: 'Allocated · low util' },
-  { id: 'hi_mem_lo_compute', label: 'High mem · low compute' },
-  { id: 'thermal', label: 'Thermal throttle' },
-  { id: 'hw_risk', label: 'Hardware risk' }
+  { id: 'low_util', label: '已分配 · 低利用' },
+  { id: 'hi_mem_lo_compute', label: '高显存 · 低计算' },
+  { id: 'thermal', label: '热降频' },
+  { id: 'hw_risk', label: '硬件风险' }
 ]
 
 const summary = computed(() => {
   const f = state.filters
   const parts = []
-  parts.push(REGIONS.find((r) => f.region_ids[0])?.region_name ? f.region_ids.map((id) => REGIONS.find((r) => r.region_id === id)?.region_name).join(' + ') : 'all regions')
+  parts.push(REGIONS.find((r) => f.region_ids[0])?.region_name ? f.region_ids.map((id) => REGIONS.find((r) => r.region_id === id)?.region_name).join(' + ') : '全部区域')
   if (f.accelerator_models.length) parts.push(f.accelerator_models.map((mm) => ACCELERATOR_TYPES.find((t) => t.model === mm)?.label).join(' + '))
-  else parts.push('all accelerator models')
+  else parts.push('全部加速卡型号')
   if (f.tenant_ids.length) parts.push(f.tenant_ids.map((id) => TENANTS.find((t) => t.tenant_id === id)?.name).join(' + '))
   const preset = PRESETS.find((p) => p.id === state.preset)
   const matched = m.filteredAccelerators.value.length
@@ -50,7 +50,7 @@ const active = (key, val) => state.filters[key].includes(val)
     <Filter :size="15" class="text-steel ml-1" />
 
     <!-- Region -->
-    <Dropdown label="Region" :count="state.filters.region_ids.length" :open="openKey === 'region'" @toggle="toggle('region')">
+    <Dropdown label="区域" :count="state.filters.region_ids.length" :open="openKey === 'region'" @toggle="toggle('region')">
       <button v-for="r in REGIONS" :key="r.region_id" class="opt" @click="m.toggleFilter('region_ids', r.region_id)">
         <span class="box" :class="active('region_ids', r.region_id) ? 'on' : ''"><Check v-if="active('region_ids', r.region_id)" :size="12" /></span>
         {{ r.region_name }}<span class="ml-auto text-[11px] text-stone uppercase">{{ r.cloud_provider }}</span>
@@ -58,7 +58,7 @@ const active = (key, val) => state.filters[key].includes(val)
     </Dropdown>
 
     <!-- Accelerator model -->
-    <Dropdown label="Accelerator" :count="state.filters.accelerator_models.length" :open="openKey === 'model'" @toggle="toggle('model')">
+    <Dropdown label="加速卡" :count="state.filters.accelerator_models.length" :open="openKey === 'model'" @toggle="toggle('model')">
       <button v-for="t in ACCELERATOR_TYPES" :key="t.model" class="opt" @click="m.toggleFilter('accelerator_models', t.model)">
         <span class="box" :class="active('accelerator_models', t.model) ? 'on' : ''"><Check v-if="active('accelerator_models', t.model)" :size="12" /></span>
         {{ t.label }}<span class="ml-auto text-[11px] text-stone">{{ t.vendor === 'nvidia' ? 'NVIDIA' : 'PPU' }}</span>
@@ -66,7 +66,7 @@ const active = (key, val) => state.filters[key].includes(val)
     </Dropdown>
 
     <!-- Tenant -->
-    <Dropdown label="Tenant" :count="state.filters.tenant_ids.length" :open="openKey === 'tenant'" @toggle="toggle('tenant')">
+    <Dropdown label="租户" :count="state.filters.tenant_ids.length" :open="openKey === 'tenant'" @toggle="toggle('tenant')">
       <button v-for="t in TENANTS" :key="t.tenant_id" class="opt" @click="m.toggleFilter('tenant_ids', t.tenant_id)">
         <span class="box" :class="active('tenant_ids', t.tenant_id) ? 'on' : ''"><Check v-if="active('tenant_ids', t.tenant_id)" :size="12" /></span>
         {{ t.name }}
@@ -84,12 +84,12 @@ const active = (key, val) => state.filters[key].includes(val)
       @click="m.setPreset(p.id)"
     >{{ p.label }}</button>
 
-    <button class="nz-btn-ghost ml-auto text-steel" @click="m.resetFilters()"><RotateCcw :size="14" />Reset</button>
+    <button class="nz-btn-ghost ml-auto text-steel" @click="m.resetFilters()"><RotateCcw :size="14" />重置</button>
   </div>
 
   <!-- natural-language summary (§9.4) -->
   <p class="mt-2 px-1 text-[12.5px] text-steel">
-    <span class="font-medium text-charcoal">{{ summary.matched }} cards</span> matched ·
+    匹配 <span class="font-medium text-charcoal">{{ summary.matched }} 张卡</span> ·
     {{ summary.text }}<template v-if="summary.preset"> · <span class="text-primary font-medium">{{ summary.preset }}</span></template>
   </p>
 </template>

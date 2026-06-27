@@ -26,9 +26,9 @@ onUnmounted(() => {
 const currentRange = computed(() => TIME_RANGES.find((r) => r.id === state.timeRange))
 const ago = computed(() => {
   const s = Math.round((now.value - state.lastRefresh) / 1000)
-  if (s < 2) return 'just now'
-  if (s < 60) return `${s}s ago`
-  return `${Math.floor(s / 60)}m ago`
+  if (s < 2) return '刚刚'
+  if (s < 60) return `${s} 秒前`
+  return `${Math.floor(s / 60)} 分钟前`
 })
 function selectRange(id) { m.setTimeRange(id); rangeOpen.value = false }
 </script>
@@ -41,10 +41,10 @@ function selectRange(id) { m.setTimeRange(id); rangeOpen.value = false }
         <Cpu :size="18" class="text-cyber-cyan" />
       </div>
       <div class="leading-tight">
-        <div class="text-[15px] font-semibold text-charcoal">Compute Monitor</div>
-        <div class="text-[11px] text-stone -mt-0.5">Training Platform</div>
+        <div class="text-[15px] font-semibold text-charcoal">算力监控</div>
+        <div class="text-[11px] text-stone -mt-0.5">大模型训练平台</div>
       </div>
-      <span class="ml-1 nz-chip bg-tint-lavender text-primary-deep border-transparent">prod</span>
+      <span class="ml-1 nz-chip bg-tint-lavender text-primary-deep border-transparent">生产</span>
     </div>
 
     <!-- global search -->
@@ -53,7 +53,7 @@ function selectRange(id) { m.setTimeRange(id); rangeOpen.value = false }
         <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-stone" />
         <input
           class="w-full h-11 rounded-md bg-surface border border-hairline pl-9 pr-3 text-[14px] text-ink placeholder:text-stone outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 transition"
-          placeholder="Search jobs, nodes, accelerators, alerts…"
+          placeholder="搜索作业、节点、加速卡、告警…"
         />
       </div>
     </div>
@@ -65,7 +65,7 @@ function selectRange(id) { m.setTimeRange(id); rangeOpen.value = false }
       @click="m.toggleLive()"
     >
       <Radio :size="14" :class="state.live ? 'text-success' : 'text-stone'" />
-      {{ state.live ? 'Live' : 'Paused' }}
+      {{ state.live ? '实时' : '已暂停' }}
     </button>
 
     <!-- time range -->
@@ -87,10 +87,10 @@ function selectRange(id) { m.setTimeRange(id); rangeOpen.value = false }
     <button class="h-9 w-9 grid place-items-center rounded-md border border-hairline text-charcoal hover:bg-surface transition-colors" @click="m.refresh()">
       <RefreshCw :size="15" :class="state.refreshing ? 'animate-spin' : ''" />
     </button>
-    <button class="nz-btn-secondary h-9 py-0"><Download :size="15" />Export</button>
+    <button class="nz-btn-secondary h-9 py-0"><Download :size="15" />导出</button>
 
     <div class="flex items-center gap-2 pl-1">
-      <span class="text-[12px] text-stone tnum">Updated {{ ago }}</span>
+      <span class="text-[12px] text-stone tnum">更新于 {{ ago }}</span>
       <div class="h-8 w-8 rounded-full bg-primary/15 text-primary grid place-items-center text-[13px] font-semibold">RS</div>
     </div>
   </header>

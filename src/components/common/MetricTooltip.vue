@@ -113,6 +113,7 @@ const relatedNames = (ids) => (ids || []).map((id) => METRIC_BY_ID[id]?.display_
               <span class="nz-chip bg-tint-gray text-slate border-transparent text-[11px]">{{ m.unit }}</span>
             </span>
           </div>
+          <div v-if="m.en" class="mt-0.5 text-[12px] text-steel">{{ m.en }}</div>
           <div class="mt-1 font-mono text-[11px] text-stone">{{ m.metric_id }}</div>
         </div>
 
