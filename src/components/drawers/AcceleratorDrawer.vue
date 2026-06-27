@@ -8,6 +8,7 @@ import { makeSeries } from '../../data/generate.js'
 import Drawer from '../common/Drawer.vue'
 import LineChart from '../common/LineChart.vue'
 import StatusBadge from '../common/StatusBadge.vue'
+import MetricTooltip from '../common/MetricTooltip.vue'
 
 const props = defineProps({ id: { type: String, required: true } })
 const emit = defineEmits(['close'])
@@ -73,6 +74,28 @@ const ID = computed(() => [
       <Readout :icon="MemoryStick" label="显存" :value="a.mem_pct + '%'" color="#8b7bff" />
       <Readout :icon="Thermometer" label="温度" :value="a.temp_c + '°'" color="#ffb648" />
       <Readout :icon="Zap" label="功耗" :value="a.power_w + 'W'" color="#9cff57" />
+    </div>
+
+    <!-- efficiency metrics: SM occupancy · MFU · tensor utilization -->
+    <div class="grid grid-cols-3 gap-2">
+      <div class="rounded-lg border border-cyber-line bg-cyber-panel-2 p-2.5 text-center">
+        <div class="flex items-center justify-center gap-1 text-[10.5px] text-cyber-text-3">
+          SM/Warp 占用率 <MetricTooltip metric-id="expert.sm.occupancy.pct" icon-only dark />
+        </div>
+        <div class="cy-readout text-[16px] font-semibold mt-1" style="color:#ffb648">{{ a.sm_occupancy_pct }}%</div>
+      </div>
+      <div class="rounded-lg border border-cyber-line bg-cyber-panel-2 p-2.5 text-center">
+        <div class="flex items-center justify-center gap-1 text-[10.5px] text-cyber-text-3">
+          MFU <MetricTooltip metric-id="training.mfu.pct" icon-only dark />
+        </div>
+        <div class="cy-readout text-[16px] font-semibold mt-1" style="color:#37e0a0">{{ a.mfu_pct }}%</div>
+      </div>
+      <div class="rounded-lg border border-cyber-line bg-cyber-panel-2 p-2.5 text-center">
+        <div class="flex items-center justify-center gap-1 text-[10.5px] text-cyber-text-3">
+          张量/矩阵单元利用率 <MetricTooltip metric-id="accelerator.utilization.tensor.pct" icon-only dark />
+        </div>
+        <div class="cy-readout text-[16px] font-semibold mt-1" style="color:#8b7bff">{{ a.tensor_pct }}%</div>
+      </div>
     </div>
 
     <!-- core curves -->

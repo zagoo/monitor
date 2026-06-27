@@ -1,10 +1,10 @@
 <script setup>
 import { computed } from 'vue'
-import { HeartPulse, Cpu, Gauge, BellRing, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-vue-next'
+import { HeartPulse, Cpu, Gauge, BellRing, Activity, Layers, Boxes, Zap, Server, ArrowUpRight, ArrowDownRight } from 'lucide-vue-next'
 import Sparkline from './Sparkline.vue'
 import MetricTooltip from './MetricTooltip.vue'
 
-const ICONS = { HeartPulse, Cpu, Gauge, BellRing, Activity }
+const ICONS = { HeartPulse, Cpu, Gauge, BellRing, Activity, Layers, Boxes, Zap, Server }
 
 // Dark industrial-cyber KPI tile (PRD §12.3.4) used on the Overview hero row.
 const props = defineProps({

@@ -11,7 +11,13 @@ import StatusBadge from '../common/StatusBadge.vue'
 import MetricTooltip from '../common/MetricTooltip.vue'
 
 const m = useMonitor()
-const { state, kpis, regionModelMatrix, topN, timeline } = m
+const { state, kpis, regionModelMatrix, tenantModelMatrix, topN, timeline } = m
+
+// matrix tab: tenant (default) | region
+const matrixTab = ref('tenant')
+const matrix = computed(() => (matrixTab.value === 'tenant' ? tenantModelMatrix.value : regionModelMatrix.value))
+function rowName(row) { return matrixTab.value === 'tenant' ? row.tenant.name : row.region.region_name }
+function rowDot(row) { return matrixTab.value === 'tenant' ? '#38e1ff' : (row.region.status === 'online' ? '#37e0a0' : '#ffb648') }
 
 const fmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k' : `${n}`
 
@@ -38,7 +44,8 @@ function modelLabel(model) { return ACCELERATOR_TYPES.find((t) => t.model === mo
 function openCell(cell) {
   if (cell.empty) return
   m.resetFilters()
-  m.rawState.filters.region_ids = [cell.region_id]
+  if (matrixTab.value === 'tenant') m.rawState.filters.tenant_ids = [cell.tenant_id]
+  else m.rawState.filters.region_ids = [cell.region_id]
   m.rawState.filters.accelerator_models = [cell.model]
   m.setTab('resources')
 }
@@ -87,16 +94,25 @@ const sevDot = { critical: '#ff5f6d', high: '#ffb648', medium: '#38e1ff', low: '
 
     <FilterBar />
 
-    <!-- ── KPI Cards row (dark cyber) ── -->
+    <!-- ── KPI Cards · two rows of four (dark cyber) ── -->
     <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-      <KpiCard label="可用卡数" :value="kpis.healthy" :sub="'可用率 ' + kpis.availability_pct + '%'"
+      <KpiCard label="加速卡总数" :value="kpis.total"
+        icon="Boxes" accent="#38e1ff" metric-id="fleet.cards.total" />
+      <KpiCard label="可用卡数 / 可用率" :value="kpis.healthy" :sub="'可用率 ' + kpis.availability_pct + '%'"
         icon="HeartPulse" accent="#37e0a0" :spark="heroSpark" :delta="0.6" delta-good="up" metric-id="fleet.cards.available" />
-      <KpiCard label="活跃训练" :value="kpis.active" :sub="'已分配 ' + kpis.allocated"
-        icon="Cpu" accent="#38e1ff" :spark="heroSpark.map(v => v*0.9)" :delta="-1.2" delta-good="up" metric-id="fleet.cards.active" />
+      <KpiCard label="已分配卡数 / 分配率" :value="kpis.allocated" :sub="'分配率 ' + kpis.allocation_pct + '%'"
+        icon="Server" accent="#8b7bff" :delta="0.4" delta-good="up" metric-id="fleet.cards.allocated" />
+      <KpiCard label="活跃训练卡数" :value="kpis.active" :sub="'已分配 ' + kpis.allocated"
+        icon="Activity" accent="#38e1ff" :spark="heroSpark.map(v => v*0.9)" :delta="-1.2" delta-good="up" metric-id="fleet.cards.active" />
+
       <KpiCard label="平均计算利用率" :value="kpis.avg_util" unit="%"
         icon="Gauge" accent="#8b7bff" :spark="heroSpark" :delta="2.4" delta-good="up" metric-id="fleet.util.compute.avg" />
-      <KpiCard label="P0 告警" :value="kpis.p0" :sub="kpis.hw_err + ' 硬件事件'"
-        icon="BellRing" :accent="kpis.p0 ? '#ff5f6d' : '#37e0a0'" :delta="kpis.p0 ? 1 : 0" delta-good="down" metric-id="alerts.p0.count" />
+      <KpiCard label="SM/Warp 占用率" :value="kpis.avg_sm" unit="%"
+        icon="Layers" accent="#ffb648" :spark="heroSpark.map(v => v*0.8)" :delta="1.1" delta-good="up" metric-id="expert.sm.occupancy.pct" />
+      <KpiCard label="MFU" :value="kpis.avg_mfu" unit="%"
+        icon="Gauge" accent="#37e0a0" :spark="heroSpark.map(v => v*0.6)" :delta="0.8" delta-good="up" metric-id="training.mfu.pct" />
+      <KpiCard label="张量/矩阵单元利用率" :value="kpis.avg_tensor" unit="%"
+        icon="Zap" accent="#9cff57" :spark="heroSpark.map(v => v*0.85)" :delta="1.6" delta-good="up" metric-id="accelerator.utilization.tensor.pct" />
     </section>
 
     <!-- ── Matrix + TopN row ── -->
@@ -104,33 +120,39 @@ const sevDot = { critical: '#ff5f6d', high: '#ffb648', medium: '#38e1ff', low: '
       <!-- Region × Model matrix -->
       <div class="cy-panel xl:col-span-8 p-5">
         <div class="flex items-center justify-between mb-4">
-          <div>
-            <h3 class="text-[15px] font-semibold text-cyber-text flex items-center gap-2">
-              区域 × 加速卡矩阵
-              <MetricTooltip metric-id="accelerator.utilization.compute.pct" icon-only dark />
-            </h3>
-            <p class="text-[12px] text-cyber-text-2 mt-0.5">健康率 · 平均利用率 · P0 数 —— 点击单元格下钻</p>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <button
+              class="px-2.5 h-7 rounded-full text-[12.5px] font-medium transition-colors"
+              :class="matrixTab === 'tenant' ? 'bg-cyber-cyan/15 text-cyber-cyan' : 'text-cyber-text-2 hover:text-cyber-text'"
+              @click="matrixTab = 'tenant'"
+            >租户 × 加速卡矩阵</button>
+            <button
+              class="px-2.5 h-7 rounded-full text-[12.5px] font-medium transition-colors"
+              :class="matrixTab === 'region' ? 'bg-cyber-cyan/15 text-cyber-cyan' : 'text-cyber-text-2 hover:text-cyber-text'"
+              @click="matrixTab = 'region'"
+            >区域 × 加速卡矩阵</button>
+            <MetricTooltip metric-id="accelerator.utilization.compute.pct" icon-only dark />
           </div>
-          <span class="text-[11px] text-cyber-text-3 cy-readout">加权汇总</span>
+          <span class="text-[11px] text-cyber-text-3 cy-readout">健康率 · 平均利用率 · P0 数 · 加权汇总</span>
         </div>
 
         <div class="overflow-x-auto scroll-thin on-dark">
           <table class="w-full border-separate border-spacing-1">
             <thead>
               <tr>
-                <th class="text-left text-[11px] font-semibold uppercase tracking-wide text-cyber-text-3 pl-1 pb-1 w-28">区域</th>
-                <th v-for="mod in regionModelMatrix.models" :key="mod.model"
+                <th class="text-left text-[11px] font-semibold uppercase tracking-wide text-cyber-text-3 pl-1 pb-1 w-28">{{ matrixTab === 'tenant' ? '租户' : '区域' }}</th>
+                <th v-for="mod in matrix.models" :key="mod.model"
                   class="text-[11px] font-semibold uppercase tracking-wide text-cyber-text-3 pb-1 px-1 text-center">
                   {{ mod.label.replace(' Blackwell','').replace(' PPU','') }}
                 </th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in regionModelMatrix.rows" :key="row.region.region_id">
+              <tr v-for="(row, ri) in matrix.rows" :key="ri">
                 <td class="text-[12.5px] text-cyber-text pl-1 pr-2 whitespace-nowrap">
                   <div class="flex items-center gap-1.5">
-                    <span class="h-1.5 w-1.5 rounded-full" :style="{ background: row.region.status==='online' ? '#37e0a0' : '#ffb648' }" />
-                    {{ row.region.region_name }}
+                    <span class="h-1.5 w-1.5 rounded-full" :style="{ background: rowDot(row) }" />
+                    {{ rowName(row) }}
                   </div>
                 </td>
                 <td v-for="cell in row.cells" :key="cell.model" class="p-0">

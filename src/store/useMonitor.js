@@ -71,6 +71,9 @@ const kpis = computed(() => {
     .filter((j) => j.status === 'running')
     .reduce((s, j) => s + j.tokens_per_s, 0)
   const idleCards = accs.filter((a) => !a.allocated || a.util_pct < 20).length
+  const allocatedCards = accs.filter((a) => a.allocated)
+  const activeCards = accs.filter((a) => a.allocated && a.util_pct > 25)
+  const avg = (arr, key) => (arr.length ? arr.reduce((s, a) => s + a[key], 0) / arr.length : 0)
   return {
     total: accs.length,
     healthy,
@@ -81,6 +84,9 @@ const kpis = computed(() => {
     active,
     avg_util: +(sumUtil / (allocated || 1)).toFixed(1),
     avg_mem: +(sumMem / memCap).toFixed(1),
+    avg_sm: +avg(allocatedCards, 'sm_occupancy_pct').toFixed(1),
+    avg_mfu: +avg(activeCards, 'mfu_pct').toFixed(1),
+    avg_tensor: +avg(allocatedCards, 'tensor_pct').toFixed(1),
     p0,
     hw_err: hwErr,
     thermal,
@@ -111,6 +117,31 @@ const regionModelMatrix = computed(() => {
       }
     })
     return { region: r, cells }
+  })
+  return { models, rows }
+})
+
+// ── Derived: Tenant × Model matrix ──
+const tenantModelMatrix = computed(() => {
+  const models = ACCELERATOR_TYPES
+  const rows = TENANTS.map((t) => {
+    const cells = models.map((m) => {
+      const cards = filteredAccelerators.value.filter((a) => a.tenant_id === t.tenant_id && a.model === m.model)
+      if (!cards.length) return { model: m.model, empty: true }
+      const healthy = cards.filter((c) => c.health_status === 'healthy').length
+      const avgUtil = cards.reduce((s, c) => s + (c.allocated ? c.util_pct : 0), 0) / cards.length
+      const p0 = cards.filter((c) => c.offline || c.xid_errors > 0 || c.ecc_errors > 0).length
+      return {
+        model: m.model,
+        empty: false,
+        count: cards.length,
+        health_pct: +((healthy / cards.length) * 100).toFixed(0),
+        avg_util: +avgUtil.toFixed(0),
+        p0,
+        tenant_id: t.tenant_id
+      }
+    })
+    return { tenant: t, cells }
   })
   return { models, rows }
 })
@@ -226,7 +257,7 @@ export function useMonitor() {
     rawState: state,
     REGIONS, ACCELERATOR_TYPES, TENANTS, TIME_RANGES,
     filteredAccelerators, filteredJobs,
-    kpis, regionModelMatrix, topN, timeline, costSummary, counts,
+    kpis, regionModelMatrix, tenantModelMatrix, topN, timeline, costSummary, counts,
     setTab, setTimeRange, toggleLive, toggleFilter, setPreset, resetFilters,
     openDrawer, closeDrawer, refresh, startLive, stopLive,
     clamp

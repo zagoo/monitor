@@ -105,6 +105,11 @@ function buildAccelerators(jobs) {
         const power = clamp((util / 100) * meta.power_limit_w * between(0.85, 1.02) + between(20, 60), 25, meta.power_limit_w)
         const xid = health === 'critical' && meta.vendor === 'nvidia' ? Math.floor(between(1, 4)) : 0
         const ecc = health === 'critical' ? Math.floor(between(0, 2)) : 0
+        // efficiency metrics (tensor util ≤ compute util; MFU lower still; SM occupancy)
+        const active = allocated && util > 25
+        const tensor = allocated ? clamp(util * between(0.6, 0.92), 0, 99) : 0
+        const sm = active ? between(34, 82) : (allocated ? between(8, 24) : between(1, 6))
+        const mfu = active ? clamp(util * between(0.45, 0.72), 8, 65) : (allocated ? between(2, 10) : 0)
         accelerators.push({
           accelerator_id: `acc-${(++_accId).toString().padStart(4, '0')}`,
           uuid: `GPU-${Math.floor(between(1e6, 9e6)).toString(16)}`,
@@ -127,6 +132,9 @@ function buildAccelerators(jobs) {
           util_pct: +util.toFixed(1),
           mem_pct: +memUsed.toFixed(1),
           mem_bw_pct: +clamp(util * between(0.7, 1.1), 0, 99).toFixed(1),
+          tensor_pct: +tensor.toFixed(1),
+          sm_occupancy_pct: +sm.toFixed(1),
+          mfu_pct: +mfu.toFixed(1),
           temp_c: +temp.toFixed(0),
           power_w: +power.toFixed(0),
           xid_errors: xid,
@@ -201,6 +209,10 @@ export function tickFleet(accelerators) {
       a.util_pct = +drift(a.util_pct, a.util_pct < 20 ? 1 : 35, a.util_pct < 20 ? 22 : 98, 3.5).toFixed(1)
       a.mem_pct = +drift(a.mem_pct, 4, 98, 1.8).toFixed(1)
       a.mem_bw_pct = +clamp(a.util_pct * between(0.7, 1.05), 0, 99).toFixed(1)
+      a.tensor_pct = +clamp(a.util_pct * between(0.6, 0.92), 0, 99).toFixed(1)
+      const act = a.util_pct > 25
+      a.sm_occupancy_pct = +drift(a.sm_occupancy_pct, act ? 30 : 4, act ? 86 : 26, 2.4).toFixed(1)
+      a.mfu_pct = +clamp(a.util_pct * between(0.45, 0.72), act ? 8 : 1, 65).toFixed(1)
     }
     a.temp_c = Math.round(drift(a.temp_c, 32, 96, 1.4))
     a.power_w = Math.round(drift(a.power_w, 25, a.power_limit_w, 18))
