@@ -99,6 +99,17 @@ export const METRIC_DICTIONARY = [
     notes: '按显存容量加权汇总，而非在异构型号间做简单平均。'
   },
   {
+    metric_id: 'accelerator.memory.used.gb', display_name: '显存用量 (GB)', en: 'Memory Used / Total (GB)', unit: 'GB',
+    level: 'L1', priority: 'P1', layer: 'hardware', type: 'gauge', vendors: ALL,
+    default_aggregation: 'sum', sources: ['dcgm_exporter', 'nvml', 'ppu_sdk_exporter'],
+    def: '已用显存与总显存的绝对值（GB），对应 DCGM 的 FB_USED / FB_TOTAL。',
+    calc: '已用显存字节 / 1e9；总容量取自加速卡型号元数据。',
+    sig: '百分比之外的绝对视角——直接看清还剩多少 GB 可用于增大 batch 或调整并行切分。',
+    related: ['accelerator.memory.used.pct', 'accelerator.memory.bandwidth.pct', 'expert.memory.fragmentation'],
+    confused: [{ name: '显存利用率', diff: '利用率是占比；此项是绝对 GB 值，便于直接判断剩余可用容量。' }],
+    notes: '总容量随型号不同（H200 141GB，RTX PRO 5000 72GB，真武 96/144GB）。'
+  },
+  {
     metric_id: 'accelerator.memory.bandwidth.pct', display_name: '显存带宽利用率', en: 'Memory Bandwidth Utilization', unit: '%',
     level: 'L1', priority: 'P1', layer: 'hardware', type: 'gauge', vendors: NV_PPU,
     default_aggregation: 'avg', sources: ['dcgm_exporter', 'ppu_sdk_exporter'],
@@ -311,6 +322,28 @@ export const METRIC_DICTIONARY = [
     notes: 'PPU 通过其自有适配器字段暴露片间链路错误。'
   },
   {
+    metric_id: 'accelerator.pcie.throughput', display_name: 'PCIe 吞吐 (TX/RX)', en: 'PCIe Throughput (TX/RX)', unit: 'GB/s',
+    level: 'L1', priority: 'P1', layer: 'network', type: 'gauge', vendors: ['nvidia', 'generic'],
+    default_aggregation: 'avg', sources: ['dcgm_exporter'],
+    def: '主机与设备之间经 PCIe 的收发吞吐（对应 DCGM_FI_PROF_PCIE_TX_BYTES / RX_BYTES）。',
+    calc: '采样窗口内 PCIe 收/发字节数 / 时间。',
+    sig: 'H2D/D2H 拷贝以及无 NVLink 时的梯度传输都走 PCIe；吞吐受限会拉长 step。',
+    related: ['network.nvlink.bandwidth', 'dataloader.copy.h2d', 'accelerator.pcie.replay.count'],
+    confused: [{ name: 'NVLink 带宽', diff: 'PCIe 是主机↔设备链路；NVLink 是设备↔设备链路。' }],
+    notes: '在无 NVLink 的卡（如 RTX PRO 5000）上，PCIe 是节点内互连的主路径。'
+  },
+  {
+    metric_id: 'accelerator.pcie.replay.count', display_name: 'PCIe 重传计数', en: 'PCIe Replay Counter', unit: 'events',
+    level: 'L1', priority: 'P1', layer: 'network', type: 'increase', vendors: ['nvidia'],
+    default_aggregation: 'increase', sources: ['dcgm_exporter', 'nvml'],
+    def: '因传输错误触发的 PCIe 重试次数（DCGM_FI_DEV_PCIE_REPLAY_COUNTER）。',
+    calc: 'increase(pcie_replay_counter) 在窗口内的增量。',
+    sig: '重传上升表明 PCIe 链路质量下降，会降低有效带宽，并可能预示插槽/线缆问题。',
+    related: ['accelerator.pcie.throughput', 'accelerator.link.nvlink_pcie.errors'],
+    confused: [{ name: 'NVLink/PCIe 错误', diff: '重传是可恢复的链路重试计数；错误条目涵盖 CRC/链路级别更广的故障。' }],
+    notes: '持续增长应检查 PCIe 插槽、Riser 与重定时器（retimer）。'
+  },
+  {
     metric_id: 'accelerator.errors.ppu_native.code', display_name: 'PPU 原生错误码', en: 'PPU-Native Error Code', unit: 'events',
     level: 'L1', priority: 'P1', layer: 'hardware', type: 'increase', vendors: ['aliyun_ppu'],
     default_aggregation: 'increase', sources: ['ppu_sdk_exporter'],
@@ -430,6 +463,17 @@ export const METRIC_DICTIONARY = [
     related: ['sched.fragmentation.pct', 'system.memory.used.pct'],
     confused: [],
     notes: 'FinOps 进行资源规格优化（right-sizing）的关键输入。'
+  },
+  {
+    metric_id: 'accelerator.process.accounting', display_name: '进程 / Pod 级 GPU 占用', en: 'Per-Process / Per-Pod GPU Accounting', unit: 'pid · % · GB',
+    level: 'L1', priority: 'P1', layer: 'k8s', type: 'topn', vendors: ALL,
+    default_aggregation: 'topn', sources: ['dcgm_exporter', 'nvml', 'kubelet'],
+    def: '单卡上各进程/Pod 的 GPU 计算占用与显存用量（对应 DCGM per-PID 计账 / nvidia-smi pmon）。',
+    calc: '按 PID 聚合 SM 活跃占比与显存用量，并关联到 namespace / pod / container / job。',
+    sig: '把一张卡的负载拆到具体进程/Pod，定位"谁在占用、谁泄漏显存、谁空占卡"。',
+    related: ['accelerator.utilization.compute.pct', 'accelerator.memory.used.gb', 'system.oom.kill.events'],
+    confused: [{ name: '计算利用率', diff: '卡级利用率是聚合值；进程级计账把它拆分到各进程/Pod。' }],
+    notes: '进程名/Pod 名为高基数信息，仅存元数据、不进入 TSDB 标签（§16.2）。'
   },
 
   // ── L1 · 网络与存储 (§7.3.2) ─────────────────────────────────────────────────

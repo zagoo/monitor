@@ -143,6 +143,28 @@ function buildAccelerators(jobs) {
         const linkErr = meta.vendor === 'nvidia' && (health === 'critical' || rnd() > 0.94) ? Math.floor(between(1, 6)) : 0
         const ppuErr = meta.vendor === 'aliyun_ppu' && health === 'critical' ? Math.floor(between(1, 4)) : 0
         const cooling = temp > 88 ? 'fault' : temp > 80 ? 'degraded' : 'ok'
+        // absolute memory (GB), PCIe telemetry, and per-process / per-Pod accounting
+        const memUsedGb = Math.round((memUsed / 100) * meta.memory_total_gb)
+        const pcieTx = allocated ? +between(1.5, 14).toFixed(1) : +between(0, 0.6).toFixed(1)
+        const pcieRx = allocated ? +between(1.5, 14).toFixed(1) : +between(0, 0.6).toFixed(1)
+        const pcieReplay = meta.vendor === 'nvidia' && (health === 'critical' || rnd() > 0.9) ? Math.floor(between(1, 40)) : 0
+        const procs = []
+        if (allocated && job) {
+          const nproc = rnd() > 0.6 ? 2 : 1
+          let ru = util, rm = memUsedGb
+          for (let p = 0; p < nproc; p++) {
+            const last = p === nproc - 1
+            const f = last ? 1 : between(0.45, 0.7)
+            const su = Math.max(0, Math.round(ru * f)); ru -= su
+            const mg = Math.max(0, Math.round(rm * f)); rm -= mg
+            procs.push({
+              pid: Math.floor(between(10000, 99999)),
+              pod: `${job.job_name.slice(0, 12)}-${nodeId.slice(-2)}-${p}`,
+              sm_pct: su,
+              mem_gb: mg
+            })
+          }
+        }
         accelerators.push({
           accelerator_id: `acc-${(++_accId).toString().padStart(4, '0')}`,
           uuid: `GPU-${Math.floor(between(1e6, 9e6)).toString(16)}`,
@@ -172,6 +194,11 @@ function buildAccelerators(jobs) {
           idle_pct: +idle.toFixed(1),
           achieved_tflops: tflops,
           power_limit_hit_pct: +powerLimitHit.toFixed(1),
+          mem_used_gb: memUsedGb,
+          pcie_tx_gbs: pcieTx,
+          pcie_rx_gbs: pcieRx,
+          pcie_replay: pcieReplay,
+          processes: procs,
           link_errors: linkErr,
           ppu_err: ppuErr,
           cooling_state: cooling,
@@ -317,6 +344,12 @@ export function tickFleet(accelerators) {
       a.mfu_pct = +clamp(a.util_pct * between(0.45, 0.72), act ? 8 : 1, 65).toFixed(1)
       a.idle_pct = +clamp(100 - a.util_pct * between(0.95, 1.08), 1, 96).toFixed(1)
       a.achieved_tflops = Math.round((a.mfu_pct / 100) * (a.peak_tflops || 1979))
+      a.mem_used_gb = Math.round((a.mem_pct / 100) * a.memory_total_gb)
+      a.pcie_tx_gbs = +clamp(a.pcie_tx_gbs + between(-1.5, 1.5), 0.5, 16).toFixed(1)
+      a.pcie_rx_gbs = +clamp(a.pcie_rx_gbs + between(-1.5, 1.5), 0.5, 16).toFixed(1)
+      if (a.processes && a.processes.length) {
+        for (const p of a.processes) p.sm_pct = Math.max(0, Math.round(clamp(p.sm_pct + between(-3, 3), 0, 100)))
+      }
     }
     a.temp_c = Math.round(drift(a.temp_c, 32, 96, 1.4))
     a.power_w = Math.round(drift(a.power_w, 25, a.power_limit_w, 18))

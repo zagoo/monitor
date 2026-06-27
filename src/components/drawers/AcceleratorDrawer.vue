@@ -121,6 +121,58 @@ const ID = computed(() => [
       </div>
     </div>
 
+    <!-- absolute memory used / total (GB) -->
+    <div class="cy-panel p-4">
+      <div class="flex items-center justify-between">
+        <span class="flex items-center gap-1 text-[12.5px] text-cyber-text-2">显存用量 <MetricTooltip metric-id="accelerator.memory.used.gb" icon-only dark /></span>
+        <span class="cy-readout text-[13px] text-cyber-text"><span class="text-cyber-violet font-semibold">{{ a.mem_used_gb }}</span> / {{ a.memory_total_gb }} GB · {{ a.mem_pct }}%</span>
+      </div>
+      <div class="mt-2 h-2 rounded-full bg-cyber-line overflow-hidden">
+        <div class="h-full rounded-full bg-cyber-violet" :style="{ width: a.mem_pct + '%' }" />
+      </div>
+    </div>
+
+    <!-- PCIe telemetry -->
+    <div class="cy-panel p-4">
+      <h4 class="text-[13px] font-semibold text-cyber-text mb-3 flex items-center gap-1">PCIe 遥测 <MetricTooltip metric-id="accelerator.pcie.throughput" icon-only dark /></h4>
+      <div class="grid grid-cols-3 gap-2">
+        <div class="rounded-md border border-cyber-line bg-cyber-panel p-2 text-center">
+          <div class="flex items-center justify-center gap-1 text-[10px] text-cyber-text-3">PCIe TX <MetricTooltip metric-id="accelerator.pcie.throughput" icon-only dark /></div>
+          <div class="cy-readout text-[15px] font-semibold mt-0.5 text-cyber-cyan">{{ a.pcie_tx_gbs }}<span class="text-[10px] text-cyber-text-3">GB/s</span></div>
+        </div>
+        <div class="rounded-md border border-cyber-line bg-cyber-panel p-2 text-center">
+          <div class="flex items-center justify-center gap-1 text-[10px] text-cyber-text-3">PCIe RX <MetricTooltip metric-id="accelerator.pcie.throughput" icon-only dark /></div>
+          <div class="cy-readout text-[15px] font-semibold mt-0.5 text-cyber-cyan">{{ a.pcie_rx_gbs }}<span class="text-[10px] text-cyber-text-3">GB/s</span></div>
+        </div>
+        <div class="rounded-md border border-cyber-line bg-cyber-panel p-2 text-center">
+          <div class="flex items-center justify-center gap-1 text-[10px] text-cyber-text-3">重传 <MetricTooltip metric-id="accelerator.pcie.replay.count" icon-only dark /></div>
+          <div class="cy-readout text-[15px] font-semibold mt-0.5" :style="{ color: a.pcie_replay > 0 ? '#ffb648' : '#9aa7ba' }">{{ a.pcie_replay }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- per-process / per-Pod GPU accounting -->
+    <div class="cy-panel p-4">
+      <h4 class="text-[13px] font-semibold text-cyber-text mb-3 flex items-center gap-1">进程 / Pod 占用 <MetricTooltip metric-id="accelerator.process.accounting" icon-only dark /></h4>
+      <table v-if="a.processes && a.processes.length" class="w-full">
+        <thead>
+          <tr class="text-[10.5px] uppercase tracking-wide text-cyber-text-3 border-b border-cyber-line">
+            <th class="text-left py-1.5">PID</th><th class="text-left py-1.5">Pod</th>
+            <th class="text-right py-1.5">SM %</th><th class="text-right py-1.5">显存 GB</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="p in a.processes" :key="p.pid" class="border-b border-cyber-line-soft">
+            <td class="py-1.5 cy-readout text-[12px] text-cyber-text-2">{{ p.pid }}</td>
+            <td class="py-1.5 font-mono text-[12px] text-cyber-cyan truncate">{{ p.pod }}</td>
+            <td class="py-1.5 text-right cy-readout text-[12px] text-cyber-text">{{ p.sm_pct }}%</td>
+            <td class="py-1.5 text-right cy-readout text-[12px] text-cyber-text">{{ p.mem_gb }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else class="text-[12.5px] text-cyber-text-3">该卡未分配，无进程占用。</p>
+    </div>
+
     <!-- core curves -->
     <div class="cy-panel p-4">
       <h4 class="text-[13px] font-semibold text-cyber-text mb-2">计算与显存 · 近 4 小时</h4>

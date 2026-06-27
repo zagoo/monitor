@@ -158,6 +158,7 @@ const COLS = [
                     <div class="h-full rounded-full bg-cyber-violet" :style="{ width: a.mem_pct + '%' }" />
                   </div>
                 </div>
+                <div class="cy-readout text-[10.5px] text-cyber-text-3 mt-0.5">{{ a.mem_used_gb }}/{{ a.memory_total_gb }} GB</div>
               </td>
               <td class="px-3 py-2.5">
                 <div class="flex items-center gap-2">
