@@ -11,7 +11,7 @@ import StatusBadge from '../common/StatusBadge.vue'
 import MetricTooltip from '../common/MetricTooltip.vue'
 
 const m = useMonitor()
-const { state, kpis, regionModelMatrix, tenantModelMatrix, topN, timeline } = m
+const { state, kpis, regionModelMatrix, tenantModelMatrix, topN } = m
 
 // matrix tab: tenant (default) | region
 const matrixTab = ref('tenant')
@@ -51,8 +51,6 @@ function openCell(cell) {
 }
 function openAcc(a) { m.openDrawer('accelerator', a.accelerator_id) }
 function openJob(j) { m.openDrawer('job', j.job_id) }
-
-const sevDot = { critical: '#ff5f6d', high: '#ffb648', medium: '#38e1ff', low: '#9aa7ba' }
 </script>
 
 <template>
@@ -230,23 +228,6 @@ const sevDot = { critical: '#ff5f6d', high: '#ffb648', medium: '#38e1ff', low: '
             </button>
           </template>
         </div>
-      </div>
-    </section>
-
-    <!-- ── Event timeline ── -->
-    <section class="cy-panel p-5">
-      <h3 class="text-[15px] font-semibold text-cyber-text mb-4">事件时间线</h3>
-      <div class="relative pl-4">
-        <span class="absolute left-[5px] top-1 bottom-1 w-px bg-cyber-line" />
-        <div v-for="e in timeline" :key="e.id" class="relative flex items-start gap-3 py-2">
-          <span class="absolute -left-[11px] top-3 h-2.5 w-2.5 rounded-full border-2 border-cyber-bg" :style="{ background: sevDot[e.severity] }" />
-          <span class="cy-readout text-[11px] text-cyber-text-3 w-14 shrink-0 pt-0.5">{{ e.min_ago }}分钟前</span>
-          <div class="min-w-0">
-            <span class="text-[13px] font-medium text-cyber-text">{{ e.title }}</span>
-            <span class="text-[12.5px] text-cyber-text-2"> — {{ e.detail }}</span>
-          </div>
-        </div>
-        <p v-if="!timeline.length" class="text-[13px] text-cyber-text-3 py-4">所选时间窗内暂无事件。</p>
       </div>
     </section>
   </div>
