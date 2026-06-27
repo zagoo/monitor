@@ -1,33 +1,25 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { ChevronDown, Check, RotateCcw, Filter, Sparkles } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { RotateCcw, Filter, Sparkles } from 'lucide-vue-next'
 import { useMonitor } from '../../store/useMonitor.js'
+import SelectMenu from '../common/SelectMenu.vue'
 
 const m = useMonitor()
 const { state, REGIONS, ACCELERATOR_TYPES, TENANTS } = m
-const openKey = ref(null)
 
-function toggle(key) { openKey.value = openKey.value === key ? null : key }
+const regionOptions = REGIONS.map((r) => ({ value: r.region_id, label: r.region_name, meta: r.cloud_provider }))
+const modelOptions = ACCELERATOR_TYPES.map((t) => ({ value: t.model, label: t.label, meta: t.vendor === 'nvidia' ? 'NVIDIA' : 'PPU' }))
+const tenantOptions = TENANTS.map((t) => ({ value: t.tenant_id, label: t.name }))
 
-// Close any open dropdown when clicking anywhere outside a dropdown root.
-function onDocClick(e) {
-  if (openKey.value && !e.target.closest('.filter-dd')) openKey.value = null
+// Write filters through rawState (state is readonly) and bump the refresh stamp, matching toggleFilter.
+function applyFilter(key, val) {
+  m.rawState.filters[key] = val
+  m.rawState.lastRefresh = Date.now()
 }
-function onKey(e) { if (e.key === 'Escape') openKey.value = null }
-onMounted(() => {
-  document.addEventListener('click', onDocClick)
-  document.addEventListener('keydown', onKey)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('click', onDocClick)
-  document.removeEventListener('keydown', onKey)
-})
 
 const PRESETS = [
   { id: 'low_util', label: '已分配 · 低利用' },
-  { id: 'hi_mem_lo_compute', label: '高显存 · 低计算' },
-  { id: 'thermal', label: '热降频' },
-  { id: 'hw_risk', label: '硬件风险' }
+  { id: 'hi_mem_lo_compute', label: '高显存 · 低计算' }
 ]
 
 const summary = computed(() => {
@@ -41,8 +33,6 @@ const summary = computed(() => {
   const matched = m.filteredAccelerators.value.length
   return { text: parts.join(', '), preset: preset?.label, matched }
 })
-
-const active = (key, val) => state.filters[key].includes(val)
 </script>
 
 <template>
@@ -50,28 +40,22 @@ const active = (key, val) => state.filters[key].includes(val)
     <Filter :size="15" class="text-steel ml-1" />
 
     <!-- Region -->
-    <Dropdown label="区域" :count="state.filters.region_ids.length" :open="openKey === 'region'" @toggle="toggle('region')">
-      <button v-for="r in REGIONS" :key="r.region_id" class="opt" @click="m.toggleFilter('region_ids', r.region_id)">
-        <span class="box" :class="active('region_ids', r.region_id) ? 'on' : ''"><Check v-if="active('region_ids', r.region_id)" :size="12" /></span>
-        {{ r.region_name }}<span class="ml-auto text-[11px] text-stone uppercase">{{ r.cloud_provider }}</span>
-      </button>
-    </Dropdown>
+    <div class="w-28">
+      <SelectMenu multiple placeholder="区域" :options="regionOptions"
+        :model-value="state.filters.region_ids" @update:model-value="(v) => applyFilter('region_ids', v)" />
+    </div>
 
     <!-- Accelerator model -->
-    <Dropdown label="加速卡" :count="state.filters.accelerator_models.length" :open="openKey === 'model'" @toggle="toggle('model')">
-      <button v-for="t in ACCELERATOR_TYPES" :key="t.model" class="opt" @click="m.toggleFilter('accelerator_models', t.model)">
-        <span class="box" :class="active('accelerator_models', t.model) ? 'on' : ''"><Check v-if="active('accelerator_models', t.model)" :size="12" /></span>
-        {{ t.label }}<span class="ml-auto text-[11px] text-stone">{{ t.vendor === 'nvidia' ? 'NVIDIA' : 'PPU' }}</span>
-      </button>
-    </Dropdown>
+    <div class="w-32">
+      <SelectMenu multiple placeholder="加速卡" :options="modelOptions"
+        :model-value="state.filters.accelerator_models" @update:model-value="(v) => applyFilter('accelerator_models', v)" />
+    </div>
 
     <!-- Tenant -->
-    <Dropdown label="租户" :count="state.filters.tenant_ids.length" :open="openKey === 'tenant'" @toggle="toggle('tenant')">
-      <button v-for="t in TENANTS" :key="t.tenant_id" class="opt" @click="m.toggleFilter('tenant_ids', t.tenant_id)">
-        <span class="box" :class="active('tenant_ids', t.tenant_id) ? 'on' : ''"><Check v-if="active('tenant_ids', t.tenant_id)" :size="12" /></span>
-        {{ t.name }}
-      </button>
-    </Dropdown>
+    <div class="w-28">
+      <SelectMenu multiple placeholder="租户" :options="tenantOptions"
+        :model-value="state.filters.tenant_ids" @update:model-value="(v) => applyFilter('tenant_ids', v)" />
+    </div>
 
     <div class="h-5 w-px bg-hairline mx-0.5" />
 
@@ -93,46 +77,3 @@ const active = (key, val) => state.filters[key].includes(val)
     {{ summary.text }}<template v-if="summary.preset"> · <span class="text-primary font-medium">{{ summary.preset }}</span></template>
   </p>
 </template>
-
-<script>
-import { h } from 'vue'
-import { ChevronDown as CD } from 'lucide-vue-next'
-const Dropdown = (props, { slots, emit }) =>
-  h('div', { class: 'relative filter-dd' }, [
-    h('button', {
-      class: 'inline-flex items-center gap-1.5 h-10 px-3 rounded-md bg-canvas border border-hairline text-[13.5px] font-medium text-charcoal hover:border-hairline-strong transition-colors',
-      onClick: () => emit('toggle')
-    }, [
-      props.label,
-      props.count ? h('span', { class: 'h-4 min-w-4 px-1 grid place-items-center rounded-full bg-primary text-white text-[10px] font-semibold' }, props.count) : null,
-      h(CD, { size: 14, class: 'text-stone' })
-    ]),
-    props.open
-      ? h('div', { class: 'absolute left-0 mt-1.5 w-60 rounded-md border border-hairline bg-canvas shadow-nz-2 py-1.5 z-50 max-h-72 overflow-y-auto scroll-thin' }, slots.default ? slots.default() : [])
-      : null
-  ])
-Dropdown.props = ['label', 'count', 'open']
-Dropdown.emits = ['toggle']
-export default { components: { Dropdown } }
-</script>
-
-<style scoped>
-.opt {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 6px 12px;
-  font-size: 13.5px;
-  color: #1a1a1a;
-  text-align: left;
-  transition: background-color 0.12s;
-}
-.opt:hover { background: #f6f5f4; }
-.box {
-  height: 15px; width: 15px; border-radius: 4px;
-  border: 1px solid #c8c4be; display: grid; place-items: center;
-  color: #fff; flex-shrink: 0;
-}
-.box.on { background: #5645d4; border-color: #5645d4; }
-</style>

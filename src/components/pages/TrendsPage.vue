@@ -6,6 +6,7 @@ import { METRIC_DICTIONARY, REGIONS, ACCELERATOR_TYPES, TENANTS } from '../../da
 import { makeSeries } from '../../data/generate.js'
 import LineChart from '../common/LineChart.vue'
 import MetricTooltip from '../common/MetricTooltip.vue'
+import SelectMenu from '../common/SelectMenu.vue'
 
 const m = useMonitor()
 const metricId = ref('accelerator.utilization.compute.pct')
@@ -20,6 +21,10 @@ const GROUPS = [
 ]
 const AGGS = ['weighted_avg', 'avg', 'p95', 'max']
 const PALETTE = ['#38e1ff', '#8b7bff', '#9cff57', '#ffb648', '#ff5f6d', '#37e0a0']
+
+const metricOptions = METRIC_DICTIONARY.map((mm) => ({ value: mm.metric_id, label: `${mm.display_name} (${mm.unit})` }))
+const groupOptions = GROUPS.map((g) => ({ value: g.id, label: g.label }))
+const aggOptions = AGGS.map((a) => ({ value: a, label: a }))
 
 const groupItems = computed(() => {
   if (groupBy.value === 'region') return REGIONS.map((r) => r.region_name)
@@ -74,25 +79,19 @@ const unit = computed(() => METRIC_DICTIONARY.find((x) => x.metric_id === metric
     <section class="nz-card p-4">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
         <Field label="指标">
-          <select v-model="metricId" class="nz-input w-full">
-            <option v-for="mm in METRIC_DICTIONARY" :key="mm.metric_id" :value="mm.metric_id">{{ mm.display_name }} ({{ mm.unit }})</option>
-          </select>
+          <SelectMenu v-model="metricId" :options="metricOptions" />
         </Field>
         <Field label="分组">
-          <select v-model="groupBy" class="nz-input w-full">
-            <option v-for="g in GROUPS" :key="g.id" :value="g.id">{{ g.label }}</option>
-          </select>
+          <SelectMenu v-model="groupBy" :options="groupOptions" />
         </Field>
         <Field label="聚合">
-          <select v-model="aggregation" class="nz-input w-full">
-            <option v-for="ag in AGGS" :key="ag" :value="ag">{{ ag }}</option>
-          </select>
+          <SelectMenu v-model="aggregation" :options="aggOptions" />
         </Field>
         <Field label="基线">
-          <button class="nz-input w-full flex items-center justify-between" @click="compare = !compare">
-            <span :class="compare ? 'text-ink' : 'text-stone'">对比昨日</span>
-            <span class="h-5 w-9 rounded-full relative transition-colors" :class="compare ? 'bg-primary' : 'bg-hairline-strong'">
-              <span class="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all" :class="compare ? 'left-[18px]' : 'left-0.5'" />
+          <button class="w-full h-8 px-2.5 rounded-md border border-hairline-strong bg-canvas flex items-center justify-between text-sm transition-colors hover:border-stone" @click="compare = !compare">
+            <span class="whitespace-nowrap" :class="compare ? 'text-ink' : 'text-stone'">对比昨日</span>
+            <span class="h-4 w-7 rounded-full relative transition-colors shrink-0" :class="compare ? 'bg-primary' : 'bg-hairline-strong'">
+              <span class="absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all" :class="compare ? 'left-[14px]' : 'left-0.5'" />
             </span>
           </button>
         </Field>

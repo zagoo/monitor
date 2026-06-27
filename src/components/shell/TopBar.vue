@@ -1,36 +1,23 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { Search, RefreshCw, Download, ChevronDown, Cpu, Radio } from 'lucide-vue-next'
+import { Search, RefreshCw, Download, Cpu, Radio } from 'lucide-vue-next'
 import { useMonitor } from '../../store/useMonitor.js'
+import SelectMenu from '../common/SelectMenu.vue'
 
 const m = useMonitor()
 const { state, TIME_RANGES } = m
-const rangeOpen = ref(false)
+const rangeOptions = TIME_RANGES.map((r) => ({ value: r.id, label: r.label }))
 const now = ref(Date.now())
 let t
-function onDocClick(e) {
-  if (rangeOpen.value && !e.target.closest('.range-dd')) rangeOpen.value = false
-}
-function onKey(e) { if (e.key === 'Escape') rangeOpen.value = false }
-onMounted(() => {
-  t = setInterval(() => (now.value = Date.now()), 1000)
-  document.addEventListener('click', onDocClick)
-  document.addEventListener('keydown', onKey)
-})
-onUnmounted(() => {
-  clearInterval(t)
-  document.removeEventListener('click', onDocClick)
-  document.removeEventListener('keydown', onKey)
-})
+onMounted(() => { t = setInterval(() => (now.value = Date.now()), 1000) })
+onUnmounted(() => clearInterval(t))
 
-const currentRange = computed(() => TIME_RANGES.find((r) => r.id === state.timeRange))
 const ago = computed(() => {
   const s = Math.round((now.value - state.lastRefresh) / 1000)
   if (s < 2) return '刚刚'
   if (s < 60) return `${s} 秒前`
   return `${Math.floor(s / 60)} 分钟前`
 })
-function selectRange(id) { m.setTimeRange(id); rangeOpen.value = false }
 </script>
 
 <template>
@@ -69,18 +56,8 @@ function selectRange(id) { m.setTimeRange(id); rangeOpen.value = false }
     </button>
 
     <!-- time range -->
-    <div class="relative range-dd">
-      <button class="nz-btn-secondary h-9 py-0" @click="rangeOpen = !rangeOpen">
-        {{ currentRange.label }}<ChevronDown :size="15" />
-      </button>
-      <div v-if="rangeOpen" class="absolute right-0 mt-1.5 w-40 rounded-md border border-hairline bg-canvas shadow-nz-2 py-1 z-50">
-        <button
-          v-for="r in TIME_RANGES" :key="r.id"
-          class="w-full text-left px-3 py-1.5 text-[14px] hover:bg-surface transition-colors"
-          :class="r.id === state.timeRange ? 'text-primary font-medium' : 'text-ink'"
-          @click="selectRange(r.id)"
-        >{{ r.label }}</button>
-      </div>
+    <div class="w-32">
+      <SelectMenu :model-value="state.timeRange" :options="rangeOptions" @update:model-value="m.setTimeRange" />
     </div>
 
     <!-- refresh -->
