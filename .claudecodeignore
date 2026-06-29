@@ -1,0 +1,79 @@
+# ====================================================================
+# 1. Frontend Directories & Dependencies (Vue 3, Vite, Tailwind, TS)
+# ====================================================================
+node_modules/
+dist/
+.json
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# Vite & Frontend Compilation Caches
+.vite/
+.nuxt/
+.cache/
+.pnpm-store/
+
+# TypeScript Declarations & Build Info
+*.d.ts
+tsconfig.tsbuildinfo
+
+# Tailwind CSS Compiler Cache
+.tailwindcss/
+tailwind.config.js.timestamp-*
+
+# Lucide Icons (Prevents scanning thousands of raw SVGs)
+node_modules/lucide-vue-next/
+
+# ====================================================================
+# 2. Backend & Database Isolation (FastAPI, PostgreSQL, Alembic, SQLAlchemy)
+# ====================================================================
+# Python Virtual Environments
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Alembic Database Migration History (Uncomment only when refactoring schema)
+alembic/versions/
+
+# ====================================================================
+# 3. Low-Level System & Polyglot Builds (Rust, Python)
+# ====================================================================
+# Rust Target Output Directory (Massive binary footprints)
+target/
+Cargo.lock
+
+# Python Static Type Checkers & Test Caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.black/
+.coverage
+htmlcov/
+
+# ====================================================================
+# 4. Distributed Compute & High-Performance Clusters (Ray)
+# ====================================================================
+# Ray Runtime Physical Logs, Metadata, & Dashboard Caches
+/tmp/ray/
+.ray/
+ray_results/
+cluster.yaml
+
+# ====================================================================
+# 5. Generic System, Log, & IDE Overheads
+# ====================================================================
+.git/
+.github/
+.vscode/
+.idea/
+*.log
+*.pstat
+*.out
+.DS_Store
+Thumbs.db

@@ -2,7 +2,13 @@
 
 Behavioral guidelines to reduce common LLM coding mistakes. These are not suggestions. **These are rules. Follow them** and you'll produce code that doesn't need to be rewritten.
 
-## 1. Read Before You Write
+## Rule 0. Behavioral & Output Constraints (Brevity & Cost Controls)
+- Enable strict minimalist output mode. Ban all conversational fluff, preambles, introductory greetings, concluding summaries, and repetitive acknowledgments.
+- Never explain why the code was written this way unless explicitly requested.
+- When identifying bugs, immediately jump to the solution. Format strictly as: `[File Path]:[Line Number] -> [Error]: [Fix]`.
+- Maintain perfect, production-grade syntax within code blocks. For non-code text, utilize punchy short fragments instead of full grammatical sentences.
+
+## Rule 1. Read Before You Write
 
 The single biggest source of bad LLM code is not reading the existing codebase before writing new code. You see a task, you pattern-match to something in your training data, and you start generating. This is almost always wrong.
 
